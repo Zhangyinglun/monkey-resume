@@ -28,10 +28,10 @@ Most AI resume workflows begin with rewriting and check accuracy afterward. Monk
 
 MonkeyResume requires Python 3.9 or newer.
 
-The GitHub repository still uses its legacy URL during the rename transition. Clone it into the new local directory name:
+Clone the repository into the standard local directory name:
 
 ```bash
-git clone https://github.com/Zhangyinglun/resume-tailor-skill.git ~/Projects/monkey-resume
+git clone https://github.com/Zhangyinglun/monkey-resume.git ~/Projects/monkey-resume
 cd ~/Projects/monkey-resume
 python3 -m pip install -r requirements.txt
 ```

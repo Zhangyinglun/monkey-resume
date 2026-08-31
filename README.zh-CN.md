@@ -28,10 +28,10 @@ MonkeyResume 是一个开源 Agent Skill。它根据候选人的真实经历生�
 
 MonkeyResume 需要 Python 3.9 或更高版本。
 
-GitHub 仓库在改名过渡期间仍使用旧 URL。克隆时直接指定新的本地目录名：
+将仓库克隆到统一的本地目录名：
 
 ```bash
-git clone https://github.com/Zhangyinglun/resume-tailor-skill.git ~/Projects/monkey-resume
+git clone https://github.com/Zhangyinglun/monkey-resume.git ~/Projects/monkey-resume
 cd ~/Projects/monkey-resume
 python3 -m pip install -r requirements.txt
 ```
