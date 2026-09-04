@@ -66,7 +66,8 @@ Use $monkey-resume to tailor my resume for this role and generate a verified sin
 
 ## Workspace Architecture
 
-Your personal resume data and generated PDFs stay isolated in your project directory:
+Your personal resume data and generated PDFs stay isolated in the candidate workspace.
+The CLI defaults to `~/Documents/MonkeyResume`; pass `--workspace` to override it:
 
 ```text
 USER_WORKSPACE/

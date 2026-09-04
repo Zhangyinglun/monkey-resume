@@ -20,7 +20,8 @@ Build each resume as an auditable projection of the candidate's accumulated evid
 ## Resolve Paths
 
 - `MONKEY_RESUME_DIR`: directory containing this `SKILL.md`.
-- `USER_WORKSPACE`: candidate workspace outside the Skill package.
+- `USER_WORKSPACE`: candidate workspace outside the Skill package. When the CLI omits
+  `--workspace`, it defaults to `~/Documents/MonkeyResume`.
 
 Enforce `1 USER_WORKSPACE = 1 Candidate`. Run scripts by absolute path and write all personalized cache, reports, renders, and PDFs under `USER_WORKSPACE`.
 

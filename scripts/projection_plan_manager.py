@@ -20,10 +20,12 @@ if str(PROJECT_ROOT) not in sys.path:
 from scripts.audit_factual_integrity import audit_resume
 from scripts.resume_cache_manager import validate_jd_analysis
 from scripts.resume_shared import (
+    add_workspace_argument,
     canonical_json_fingerprint,
     entity_anchor,
     iter_resume_text_fields,
     load_json_file,
+    resolve_user_workspace,
     stable_identifier,
     validate_resume_content,
     write_json_file,
@@ -848,12 +850,7 @@ def main() -> int:
     subparsers = parser.add_subparsers(dest="action", help="Action to execute")
 
     validate_parser = subparsers.add_parser("validate", help="Validate a projection plan")
-    validate_parser.add_argument(
-        "--workspace",
-        type=Path,
-        required=True,
-        help="Path to candidate workspace directory",
-    )
+    add_workspace_argument(validate_parser)
     validate_parser.add_argument(
         "--plan",
         type=Path,
@@ -861,7 +858,7 @@ def main() -> int:
         help="Path to projection-plan.json (defaults to workspace/cache/projection-plan.json)",
     )
     build_parser = subparsers.add_parser("build", help="Build a validated resume projection")
-    build_parser.add_argument("--workspace", type=Path, required=True)
+    add_workspace_argument(build_parser)
     build_parser.add_argument("--plan", type=Path, required=True)
     build_parser.add_argument("--language", type=Path, required=True)
 
@@ -869,7 +866,7 @@ def main() -> int:
 
     if args.action == "validate":
         try:
-            workspace = args.workspace.resolve()
+            workspace = resolve_user_workspace(args.workspace)
             plan_path = args.plan.resolve() if args.plan else workspace / CACHE_DIR / PLAN_NAME
             if not plan_path.exists():
                 sys.stderr.write(f"Projection plan file not found: {plan_path}\n")
@@ -890,7 +887,8 @@ def main() -> int:
 
     if args.action == "build":
         try:
-            result = build_projection(args.workspace, args.plan, args.language)
+            workspace = resolve_user_workspace(args.workspace)
+            result = build_projection(workspace, args.plan, args.language)
             payload = asdict(result)
             payload["resume_path"] = str(result.resume_path) if result.resume_path else None
             payload["manifest_path"] = str(result.manifest_path) if result.manifest_path else None

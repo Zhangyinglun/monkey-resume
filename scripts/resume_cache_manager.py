@@ -17,8 +17,10 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from scripts.resume_shared import (  # noqa: E402
+    add_workspace_argument,
     load_json_file,
     parse_pipe_delimited_items,
+    resolve_user_workspace,
     validate_resume_content,
     write_json_file,
 )
@@ -496,7 +498,7 @@ def _parse_args() -> argparse.Namespace:
         ],
         help="Action to execute",
     )
-    parser.add_argument("--workspace", default=".", help="Workspace root directory")
+    add_workspace_argument(parser)
     parser.add_argument(
         "--input",
         help="Input path (init/template-init uses raw text; update uses JSON)",
@@ -515,7 +517,7 @@ def _run_json_action(action: Callable[..., Any], *args: Any) -> int:
 
 def main() -> int:
     args = _parse_args()
-    workspace = Path(args.workspace).expanduser().resolve()
+    workspace = resolve_user_workspace(args.workspace)
     if workspace == PROJECT_ROOT or PROJECT_ROOT in workspace.parents:
         print(
             "Error: Personal resume data must use a workspace outside the Skill package.",

@@ -66,7 +66,8 @@ ln -s ~/Projects/monkey-resume ~/.agents/skills/monkey-resume
 
 ## 数据隔离架构
 
-个人数据与生成的 PDF 完全保存在你指定的用户工作目录：
+个人数据与生成的 PDF 完全保存在候选人工作目录。CLI 默认使用
+`~/Documents/MonkeyResume`；可通过 `--workspace` 指定其他位置：
 
 ```text
 USER_WORKSPACE/

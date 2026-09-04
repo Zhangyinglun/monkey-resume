@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import argparse
 import hashlib
 import json
 import re
@@ -11,6 +12,27 @@ from pathlib import Path
 from typing import Any, Iterator
 
 REQUIRED_KEYS = ("name", "contact", "summary", "skills", "experience", "education")
+DEFAULT_WORKSPACE_REL_PATH = Path("Documents") / "MonkeyResume"
+
+
+def default_user_workspace() -> Path:
+    """Return the default candidate workspace outside the Skill package."""
+    return Path.home() / DEFAULT_WORKSPACE_REL_PATH
+
+
+def add_workspace_argument(parser: argparse.ArgumentParser) -> None:
+    """Add the shared optional candidate-workspace argument to a CLI parser."""
+    parser.add_argument(
+        "--workspace",
+        type=Path,
+        default=default_user_workspace(),
+        help="Candidate workspace root (default: ~/Documents/MonkeyResume)",
+    )
+
+
+def resolve_user_workspace(workspace: Path) -> Path:
+    """Expand and resolve a candidate workspace supplied by argparse."""
+    return workspace.expanduser().resolve()
 
 _QUANTIFIED_RESULT_PATTERNS = (
     re.compile(r"(?:\d+(?:\.\d+)?\s*(?:%|x\b|×))", re.IGNORECASE),

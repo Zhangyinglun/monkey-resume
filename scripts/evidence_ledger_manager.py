@@ -18,11 +18,13 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from scripts.resume_shared import (  # noqa: E402
+    add_workspace_argument,
     canonical_json_fingerprint,
     entity_anchor,
     iter_resume_text_fields,
     load_json_file,
     normalize_skill_items,
+    resolve_user_workspace,
     slugify_token,
     stable_identifier,
     validate_resume_content,
@@ -654,7 +656,7 @@ def _parse_args() -> argparse.Namespace:
         "action",
         choices=("init", "sync", "ingest", "manifest-rebuild", "revoke", "show", "profile-show"),
     )
-    parser.add_argument("--workspace", required=True, help="Candidate workspace root")
+    add_workspace_argument(parser)
     parser.add_argument("--source-json", help="Validated source resume JSON for init/sync")
     parser.add_argument("--response-json", help="Candidate response JSON for ingest")
     parser.add_argument("--claim-id", help="Claim ID for revoke")
@@ -664,7 +666,7 @@ def _parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = _parse_args()
-    workspace = Path(args.workspace).expanduser().resolve()
+    workspace = resolve_user_workspace(args.workspace)
     if workspace == PROJECT_ROOT or PROJECT_ROOT in workspace.parents:
         print(
             "Error: Candidate data must use a workspace outside the Skill package.", file=sys.stderr
