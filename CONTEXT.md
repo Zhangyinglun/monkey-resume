@@ -99,5 +99,5 @@ A freshly compiled PDF undergoing automated factual, content, and geometry quali
 _Avoid_: Staged PDF, temp PDF, draft build
 
 **Accepted Resume**:
-A verified, high-quality PDF and matching projection that has passed all factual, content, and layout gates.
+A verified editable DOCX, optionally accompanied by its same-source PDF, and matching projection that have passed all factual, content, and layout gates.
 _Avoid_: Final output, released resume, master copy

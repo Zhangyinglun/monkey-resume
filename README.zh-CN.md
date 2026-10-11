@@ -2,7 +2,7 @@
 
 [English](README.md)
 
-> **基于证据的简历定制工具。** 零幻觉生成、声明全流程可追溯、交付经验证的单页 A4 PDF。
+> **基于证据的简历定制工具。** 零幻觉生成、声明全流程可追溯、默认交付经验证的单页 A4 DOCX，可选同源 PDF。
 
 MonkeyResume 根据你的真实经历生成岗位定制简历，绝不虚构技能、成果或头衔。每条声明绑定事实账本，无法追溯的内容直接阻断发布。
 
@@ -35,7 +35,7 @@ ln -s ~/Projects/monkey-resume ~/.agents/skills/monkey-resume
 提供现有简历和目标岗位描述 (JD)，发送提示词：
 
 ```text
-使用 $monkey-resume 根据这个岗位定制我的简历，并生成经过校验的单页 PDF。
+使用 $monkey-resume 根据这个岗位定制我的简历，并生成经过校验的单页 DOCX。
 ```
 
 ---
@@ -66,7 +66,7 @@ ln -s ~/Projects/monkey-resume ~/.agents/skills/monkey-resume
 
 ## 数据隔离架构
 
-个人数据与生成的 PDF 完全保存在候选人工作目录。CLI 默认使用
+个人数据与生成的 DOCX/PDF 完全保存在候选人工作目录。CLI 默认使用
 `~/Documents/MonkeyResume`；可通过 `--workspace` 指定其他位置：
 
 ```text
@@ -78,7 +78,7 @@ USER_WORKSPACE/
 │   ├── resume-working.json       # 当前定制简历数据
 │   └── resume-changes.json       # 字段级修改变更记录
 └── resume_output/
-    ├── Candidate_Resume_Role.pdf # 校验通过的正式 PDF
+    ├── Candidate_Resume_Role.docx # 校验通过的可编辑 DOCX
     └── rejected/                 # 未通过门禁的候选文件（自动隔离）
 ```
 
@@ -100,3 +100,10 @@ python3 -m unittest discover -s tests -v
 ## 许可证
 
 [MIT](LICENSE)
+
+
+## DOCX-first output / 默认 DOCX
+
+默认交付可编辑 DOCX，保留 `--format pdf` 和 `--format both`。PDF 由同一份 DOCX 经 LibreOffice 转换，不维护两套排版。旧命令显式指定 `.pdf` 仍输出 PDF。需安装 LibreOffice、Poppler 和 Carlito 字体。
+
+Default output is editable DOCX. PDF is exported from the exact same document. See [output and QA guide](references/docx-output.md) for dependencies, compatibility, the pinned Apache-2.0 OpenAI public QA tool, and renderer/font limitations.

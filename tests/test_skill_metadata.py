@@ -49,7 +49,14 @@ class SkillMetadataTests(unittest.TestCase):
         bundled_files = [
             path for path in vendor_root.rglob("*") if path.is_file()
         ] if vendor_root.exists() else []
-        self.assertEqual(bundled_files, [])
+        # Only reviewed Apache-2.0 PUBLIC OpenAI source is allowed; private
+        # runtime skill content remains forbidden.
+        allowed = {"openai_doc/render_docx.py", "openai_doc/LICENSE.txt", "openai_doc/PROVENANCE.md"}
+        self.assertEqual({str(path.relative_to(vendor_root)) for path in bundled_files
+                          if "__pycache__" not in path.parts}, allowed)
+        import hashlib
+        self.assertEqual(hashlib.sha256((vendor_root / "openai_doc/render_docx.py").read_bytes()).hexdigest(),
+                         "52b3c3158913ebcad2ada7b8193970b70453239e255054aa2d60c1683af08751")
 
     def test_skill_contains_model_projection_workflow_terms(self) -> None:
         skill_path = self.repo_root / "SKILL.md"

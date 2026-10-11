@@ -1,6 +1,6 @@
 ---
 name: monkey-resume
-description: Tailor, review, regenerate, and validate resumes against a job description or target role. Use when the user provides a resume, CV, JD, target direction, or an existing resume-working.json and wants truthful ATS alignment, JD-driven clarification, long-term evidence reuse, content compression, language polishing, or a verified single-page A4 PDF.
+description: Tailor, review, regenerate, and validate resumes against a job description or target role. Use when the user provides a resume, CV, JD, target direction, or an existing resume-working.json and wants truthful ATS alignment, JD-driven clarification, long-term evidence reuse, content compression, language polishing, or a verified single-page A4 DOCX with optional matching PDF.
 ---
 
 # MonkeyResume
@@ -124,7 +124,7 @@ python3 "$MONKEY_RESUME_DIR/scripts/check_pdf_geometry.py" \
 - If `overflow` or `underfill`, revise `projection-plan.json` (revision 2 or 3) and `projection-language.json` following the priority order in `references/projection-planning-protocol.md`.
 - Content revisions are limited to at most **3 iterations**. Unchanged intents must keep identical rendered text.
 
-### 7. Layout Auto-fit and Generate Final PDF
+### 7. Layout Auto-fit and Generate Final DOCX (optional PDF)
 
 Once content fits, compile through the publication gate with layout-only auto-tuning:
 
@@ -135,18 +135,18 @@ python3 "$MONKEY_RESUME_DIR/scripts/generate_final_resume.py" \
   --evidence-json "$USER_WORKSPACE/cache/candidate-evidence.json" \
   --base-json "$USER_WORKSPACE/cache/base-resume.json" \
   --output-dir "$USER_WORKSPACE/resume_output" \
-  --output-file "target_resume.pdf" \
+  --output-file "target_resume.docx" \
   --auto-fit
 ```
 
-- Exit `0`: all blocking gates passed; candidate PDF published as Accepted Resume.
-- Exit `1`: factual audit failure or invalid input; no PDF published.
+- Exit `0`: all blocking gates passed; requested DOCX/PDF outputs published as Accepted Resume.
+- Exit `1`: factual audit failure, invalid input, or rendering/publication error; no new output accepted.
 - Exit `2`: PDF QA failure or geometry violation; previous Accepted Resume remains intact, and failed candidate is preserved in `rejected/`.
 - Layout auto-fit adjusts font size, margins, and spacing only; it never mutates content. Third-party AI detectors do not enter QA.
 
 ### 8. Report and Visually Verify
 
-Generate the combined quality report:
+For PDF delivery or final visual QA, add `--format both` to the command above. Generate the combined quality report:
 
 ```bash
 python3 "$MONKEY_RESUME_DIR/scripts/generate_quality_report.py" \
@@ -158,7 +158,7 @@ python3 "$MONKEY_RESUME_DIR/scripts/generate_quality_report.py" \
   --pdf "$USER_WORKSPACE/resume_output/target_resume.pdf"
 ```
 
-Load the host PDF skill and inspect every rendered page. Report factual coverage, capability matches, applied changes, removals, Gaps, warning dispositions, programmatic PDF verdict, visual verdict, and absolute Accepted Resume path. Never call an uninspected PDF visually verified.
+Read `references/docx-output.md`. Load available host documents/PDF skills and use the vendored public OpenAI DOCX rendering tool for independent page previews. Inspect every page of the DOCX render and the same-source PDF; compare wrapping, fonts and borders. Default user delivery is DOCX; generate both for QA or when requested. Require LibreOffice and Carlito; do not publish unchecked DOCX when conversion is unavailable. DOCX can reflow in other readers, so only promise equivalence in the tested renderer/font environment. Report factual coverage, capability matches, applied changes, removals, Gaps, warning dispositions, programmatic PDF verdict, visual verdict, and absolute Accepted Resume path. Never call an uninspected PDF visually verified.
 
 ## References
 
@@ -169,3 +169,5 @@ Load the host PDF skill and inspect every rendered page. Report factual coverage
 - `references/optimization-actions.md`: manifest action codes.
 - `references/resume-language-quality.md`: concise evidence-preserving language checks.
 - `references/prompt-recipes.md`: prompt recipes for Projection Planner and Language Optimizer.
+
+- `references/docx-output.md`: DOCX-first CLI, mature tool provenance, installation, same-source rendering and QA limits.
