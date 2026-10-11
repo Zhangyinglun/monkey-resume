@@ -42,7 +42,10 @@ def extract_docx_text(path: Path) -> str:
     lines: list[str] = []
     for paragraph in root.iter(f"{namespace}p"):
         text = "".join(
-            node.text or "" for node in paragraph.iter(f"{namespace}t")
+            (node.text or "") if node.tag == f"{namespace}t" else
+            "\t" if node.tag == f"{namespace}tab" else
+            "\n" if node.tag in (f"{namespace}br", f"{namespace}cr") else ""
+            for node in paragraph.iter()
         ).strip()
         if text:
             lines.append(text)

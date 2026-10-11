@@ -2,7 +2,7 @@
 
 [简体中文](README.zh-CN.md)
 
-> **Evidence-grounded resume tailoring.** Zero hallucinations, traceable claims, and verified single-page A4 PDF delivery.
+> **Evidence-grounded resume tailoring.** Zero hallucinations, traceable claims, and verified single-page A4 DOCX delivery with optional matching PDF.
 
 MonkeyResume turns your real experience into role-specific resumes without inventing skills, metrics, or titles. Every claim links to an evidence ledger, and publication is blocked if any bullet cannot be traced.
 
@@ -35,7 +35,7 @@ ln -s ~/Projects/monkey-resume ~/.agents/skills/monkey-resume
 Provide your resume and job description (JD), then prompt:
 
 ```text
-Use $monkey-resume to tailor my resume for this role and generate a verified single-page PDF.
+Use $monkey-resume to tailor my resume for this role and generate a verified single-page DOCX.
 ```
 
 ---
@@ -66,7 +66,7 @@ Use $monkey-resume to tailor my resume for this role and generate a verified sin
 
 ## Workspace Architecture
 
-Your personal resume data and generated PDFs stay isolated in the candidate workspace.
+Your personal resume data and generated DOCX/PDF files stay isolated in the candidate workspace.
 The CLI defaults to `~/Documents/MonkeyResume`; pass `--workspace` to override it:
 
 ```text
@@ -78,7 +78,7 @@ USER_WORKSPACE/
 │   ├── resume-working.json       # Current tailored resume data
 │   └── resume-changes.json       # Field-level tailoring changelog
 └── resume_output/
-    ├── Candidate_Resume_Role.pdf # Verified published PDF
+    ├── Candidate_Resume_Role.docx # Verified editable DOCX
     └── rejected/                 # Failed runs (auto-isolated)
 ```
 
@@ -100,3 +100,10 @@ python3 -m unittest discover -s tests -v
 ## License
 
 [MIT](LICENSE)
+
+
+## DOCX-first output / 默认 DOCX
+
+默认交付可编辑 DOCX，保留 `--format pdf` 和 `--format both`。PDF 由同一份 DOCX 经 LibreOffice 转换，不维护两套排版。旧命令显式指定 `.pdf` 仍输出 PDF。需安装 LibreOffice、Poppler 和 Carlito 字体。
+
+Default output is editable DOCX. PDF is exported from the exact same document. See [output and QA guide](references/docx-output.md) for dependencies, compatibility, the pinned Apache-2.0 OpenAI public QA tool, and renderer/font limitations.

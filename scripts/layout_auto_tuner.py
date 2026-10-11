@@ -12,8 +12,8 @@ from pathlib import Path
 from typing import Any
 
 from scripts.check_pdf_quality import DEFAULT_MARGIN_THRESHOLDS, check_pdf_file
+from templates.docx_resume_template import generate_resume
 from templates.layout_settings import LayoutSettings
-from templates.modern_resume_template import generate_resume
 
 # Checks that layout tuning can potentially fix (margins, page overflow).
 LAYOUT_FIXABLE_CHECKS = {

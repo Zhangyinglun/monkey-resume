@@ -64,7 +64,7 @@ The audit blocks publication on incomplete traceability, metric mismatch, cross-
 
 ## Generate and Validate
 
-1. Generate with `generate_final_resume.py --auto-fit` and explicit evidence/manifest paths.
+1. Generate with `generate_final_resume.py --auto-fit` and explicit evidence/manifest paths. Default delivery is DOCX; use `--format both` for the matching PDF and visual QA. Read `references/docx-output.md` for dependencies and exact format behavior.
 2. Keep auto-fit limited to font, spacing, and margins. It never modifies content.
 3. Treat A4 size, one page, extractable text, required sections, safe minimum margins, complete contact information, placeholder absence, and factual integrity as blocking checks.
 4. Use `pdfplumber` coordinates for line geometry; do not estimate PDF wraps from source character counts.
@@ -73,7 +73,7 @@ The audit blocks publication on incomplete traceability, metric mismatch, cross-
 
 ## Visual QA
 
-1. Render and inspect every page using the host PDF skill or Poppler.
+1. Independently render the DOCX with the pinned public OpenAI tool in `vendor/openai_doc/render_docx.py`, and render the exported PDF with Poppler. Inspect and compare every page. Do not claim universal reader equivalence; require the same fonts and renderer.
 2. Store visual intermediates under `USER_WORKSPACE/cache/pdf-visual-qa/` or an OS temporary directory.
 3. Check clipping, overlap, glyph failures, hierarchy, spacing, sparse trailing lines, and margin balance.
 4. Regenerate and re-render after any material correction.

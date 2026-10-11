@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Generate final resume PDF from JSON content."""
+"""Publish editable DOCX by default, with same-source PDF export and QA."""
 
 from __future__ import annotations
 
@@ -22,20 +22,22 @@ from scripts.layout_auto_tuner import (  # noqa: E402
     auto_fit_layout,
 )
 from scripts.resume_shared import load_json_file, validate_resume_content  # noqa: E402
+from templates.docx_resume_template import generate_resume  # noqa: E402
 from templates.layout_settings import LayoutSettings  # noqa: E402
-from templates.modern_resume_template import archive_root_pdfs, generate_resume  # noqa: E402
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Render final resume PDF (A4 single-page template) from JSON."
+        description="Render final resume DOCX (default), PDF, or both with A4 layout QA."
     )
     parser.add_argument("--input-json", required=True, help="Resume content JSON file path")
     parser.add_argument(
         "--output-file",
-        required=True,
-        help="Output filename (filename only), example: 02_10_Name_Backend_Engineer_resume.pdf",
+        default=None,
+        help="Filename only; defaults to resume.docx. Explicit .pdf remains backward compatible.",
     )
+    parser.add_argument("--format", choices=("docx", "pdf", "both"),
+                        help="Default DOCX; an explicit .pdf filename selects PDF for compatibility.")
     parser.add_argument(
         "--output-dir", default="resume_output", help="Output directory (default: resume_output)"
     )
@@ -104,7 +106,7 @@ def _next_rejected_path(output_dir: Path, output_name: str) -> Path:
     stem = Path(output_name).stem
     candidate = rejected_dir / f"{stem}_rejected.pdf"
     sequence = 2
-    while candidate.exists():
+    while candidate.exists() or candidate.with_suffix(".docx").exists():
         candidate = rejected_dir / f"{stem}_rejected_{sequence}.pdf"
         sequence += 1
     return candidate
@@ -114,13 +116,20 @@ def main() -> int:
     args = parse_args()
     output_dir = Path(args.output_dir).expanduser().resolve()
 
-    output_name = Path(args.output_file).name
-    if output_name != args.output_file:
+    requested_name = args.output_file or ("resume.pdf" if args.format == "pdf" else "resume.docx")
+    output_name = Path(requested_name).name
+    if output_name != requested_name:
         print("Error: --output-file must contain filename only, no path.", file=sys.stderr)
         return 1
-    if Path(output_name).suffix.casefold() != ".pdf":
-        print("Error: --output-file must use a .pdf extension.", file=sys.stderr)
+    suffix = Path(output_name).suffix.casefold()
+    if suffix not in (".docx", ".pdf"):
+        print("Error: --output-file must use a .docx or .pdf extension.", file=sys.stderr)
         return 1
+    output_format = args.format or suffix[1:]
+    if output_format != "both" and args.format and suffix != "." + output_format:
+        print("Error: --format and --output-file extension must agree.", file=sys.stderr)
+        return 1
+    qa_name = str(Path(output_name).with_suffix(".pdf"))
 
     source_path = Path(args.input_json).expanduser().resolve()
     if not source_path.exists():
@@ -239,7 +248,7 @@ def main() -> int:
 
             fit_result = auto_fit_layout(
                 content,
-                output_file=output_name,
+                output_file=qa_name,
                 max_trials=args.auto_fit_max_trials,
                 hint_layout=hint_layout,
             )
@@ -270,7 +279,7 @@ def main() -> int:
         ) as staging_dir:
             candidate_path = Path(
                 generate_resume(
-                    output_name,
+                    qa_name,
                     content,
                     base_dir=staging_dir,
                     layout=layout,
@@ -285,8 +294,11 @@ def main() -> int:
                     for check in qa_report.get("checks", [])
                     if not check.get("passed")
                 ]
-                rejected_path = _next_rejected_path(output_dir, output_name)
+                rejected_path = _next_rejected_path(output_dir, qa_name)
                 candidate_path.replace(rejected_path)
+                candidate_docx = candidate_path.with_suffix(".docx")
+                if candidate_docx.exists():
+                    candidate_docx.replace(rejected_path.with_suffix(".docx"))
                 print(
                     f"\u2717 QA not passed ({', '.join(failed)}); "
                     "previous resume files were preserved."
@@ -294,9 +306,47 @@ def main() -> int:
                 print(f"Rejected candidate retained for review: {rejected_path}")
                 return 2
 
-            archive_root_pdfs(output_dir)
-            final_path = output_dir / output_name
-            candidate_path.replace(final_path)
+            extensions = (".docx", ".pdf") if output_format == "both" else ("." + output_format,)
+            candidates = [candidate_path.with_suffix(ext) for ext in extensions]
+            destinations = {
+                ext: output_dir / (output_name if Path(output_name).suffix.casefold() == ext
+                                   else str(Path(output_name).with_suffix(ext)))
+                for ext in (".docx", ".pdf")
+            }
+            if not all(path.is_file() for path in candidates):
+                raise RuntimeError("Missing candidate output; accepted versions preserved.")
+            # Archive only after every requested output has passed the shared PDF gate.
+            # Keep a rollback journal so a filesystem error cannot destroy an accepted pair.
+            journal: list[tuple[Path, Path]] = []
+            published: list[Path] = []
+            try:
+                backup_dir = output_dir / "backup" / "Uncategorized"
+                # Retire a same-stem counterpart too: leaving an old PDF beside
+                # a new DOCX would falsely present them as a matching pair.
+                archive_targets = [path for path in output_dir.iterdir()
+                                   if path.stem == Path(output_name).stem
+                                   and path.suffix.casefold() in (".docx", ".pdf")]
+                for target in archive_targets:
+                    if target.exists():
+                        backup_dir.mkdir(parents=True, exist_ok=True)
+                        n = 1
+                        backup = backup_dir / f"{target.stem}_old_{n}{target.suffix}"
+                        while backup.exists():
+                            n += 1
+                            backup = backup_dir / f"{target.stem}_old_{n}{target.suffix}"
+                        target.replace(backup)
+                        journal.append((backup, target))
+                for source in candidates:
+                    target = destinations[source.suffix]
+                    source.replace(target)
+                    published.append(target)
+            except OSError:
+                for target in published:
+                    target.unlink(missing_ok=True)
+                for backup, target in reversed(journal):
+                    backup.replace(target)
+                raise
+            final_path = destinations[candidates[0].suffix]
     except Exception as exc:  # noqa: BLE001 - CLI must convert renderer/parser errors into a stable exit code.
         print(f"Generation failed: {exc}", file=sys.stderr)
         return 1
