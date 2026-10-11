@@ -131,6 +131,8 @@ Once content fits, compile through the publication gate with layout-only auto-tu
 The default DOCX layout uses Carlito, 10.5 pt body text, 12.7 mm top/bottom
 margins and 15.24 mm side margins. Explicit flags override it; auto-fit starts
 there and may adjust layout within the existing bounds to pass QA.
+If that first render already passes QA, auto-fit keeps it unchanged; whitespace
+advisories alone do not replace the approved default or explicit layout.
 
 ```bash
 python3 "$MONKEY_RESUME_DIR/scripts/generate_final_resume.py" \

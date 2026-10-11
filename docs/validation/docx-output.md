@@ -104,3 +104,19 @@ Default, explicit-override, compact-mode and auto-fit-start regressions pass.
 The complete suite passes 139 tests with zero skips (22.507 seconds), together
 with Ruff, skills-ref validation and git diff checks. Evidence remains outside
 the repository under `/workspace/monkey-resume-validation/approved-defaults*`.
+
+### Auto-fit preservation regression
+
+GitHub review identified that the old 8 mm preferred bottom-whitespace target
+could replace an already passing approved layout. The actual sample reproduced
+the problem: `--auto-fit` ran 10 trials and changed vertical margins to about
+5 mm. A CLI document-XML regression and a realistic whitespace-advisory test
+failed before the repair. Auto-fit now preserves any first render with a full
+PASS verdict, including explicit overrides; failed renders still search the
+existing bounded candidates and pass the same final gate.
+
+The approved sample with `--auto-fit` now runs one trial and retains identical
+document/styles XML and single-page pixels against the approved PDF and an
+independent DOCX render at 144 DPI. The final full suite passes 142 tests with
+zero skips (14.256 seconds); Ruff, skills-ref and diff checks pass. Evidence is
+outside the repository under `autofit-default-*` in the same validation folder.

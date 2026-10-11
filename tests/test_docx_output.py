@@ -76,6 +76,44 @@ class DocxTemplateTests(unittest.TestCase):
         self.assertEqual(run.call_args.args[2], expected)
         self.assertEqual(result.best_layout, expected)
 
+    def test_auto_fit_preserves_passing_layout_despite_whitespace_advisory(self) -> None:
+        from scripts.layout_auto_tuner import AutoFitTrial, auto_fit_layout
+        from templates.layout_settings import DOCX_DEFAULT_SETTINGS, LayoutSettings
+
+        report = {'verdict': 'PASS', 'checks': [
+            {'name': 'page_count', 'passed': True, 'detail': {'count': 1}},
+            {'name': 'bottom_margin', 'passed': True, 'detail': {'bottom_mm': 21.07}},
+        ]}
+        explicit = LayoutSettings(font_size_scale=1.2, margin_top_mm=15, margin_bottom_mm=15)
+        for hint in (None, explicit):
+            expected = hint or DOCX_DEFAULT_SETTINGS
+            with self.subTest(hint=hint), mock.patch(
+                'scripts.layout_auto_tuner._run_trial',
+                return_value=AutoFitTrial(expected, report),
+            ) as run:
+                result = auto_fit_layout(sample_resume(), output_file='resume.pdf',
+                                         max_trials=12, hint_layout=hint)
+            self.assertEqual(run.call_count, 1)
+            self.assertEqual(result.trials_run, 1)
+            self.assertEqual(result.best_layout, expected)
+
+    def test_auto_fit_still_searches_when_first_layout_overflows(self) -> None:
+        from scripts.layout_auto_tuner import AutoFitTrial, auto_fit_layout
+        from templates.layout_settings import DOCX_DEFAULT_SETTINGS, LayoutSettings
+
+        failed = {'verdict': 'NEED-ADJUSTMENT', 'checks': [
+            {'name': 'page_count', 'passed': False, 'detail': {'count': 2}},
+        ]}
+        fitted = LayoutSettings(line_height_scale=0.95)
+        with mock.patch('scripts.layout_auto_tuner._run_trial', side_effect=[
+            AutoFitTrial(DOCX_DEFAULT_SETTINGS, failed),
+            AutoFitTrial(fitted, {'verdict': 'PASS', 'checks': []}),
+        ]) as run:
+            result = auto_fit_layout(sample_resume(), output_file='resume.pdf', max_trials=2)
+        self.assertEqual(run.call_count, 2)
+        self.assertEqual(result.best_layout, fitted)
+        self.assertEqual(result.best_report['verdict'], 'PASS')
+
     def test_body_alignment_preserves_original_style(self) -> None:
         from docx import Document
         from docx.enum.text import WD_ALIGN_PARAGRAPH
@@ -210,6 +248,19 @@ class DocxPublicationTests(unittest.TestCase):
             self.assertAlmostEqual(doc.sections[0].bottom_margin.mm, 8, places=1)
             self.assertAlmostEqual(doc.sections[0].left_margin.mm, 19.05)
             self.assertAlmostEqual(doc.sections[0].right_margin.mm, 19.05)
+
+    def test_cli_auto_fit_keeps_valid_default_document_layout(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            self.assertEqual(self.invoke(root), 0)
+            path = root / 'output/resume.docx'
+            with zipfile.ZipFile(path) as archive:
+                original = {part: archive.read(part)
+                            for part in ('word/document.xml', 'word/styles.xml')}
+            self.assertEqual(self.invoke(root, '--auto-fit'), 0)
+            with zipfile.ZipFile(path) as archive:
+                for part, content in original.items():
+                    self.assertEqual(archive.read(part), content)
 
     def test_both_exact_docx_source_is_exported(self) -> None:
         from pdf2image import convert_from_path
