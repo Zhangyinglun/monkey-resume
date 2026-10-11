@@ -41,6 +41,10 @@ Explicit layout flags still override defaults. `--compact` retains its existing
 compression preset, and `--auto-fit` starts from the approved defaults before
 trying existing bounded presets if needed. Auto-fit may change the final layout;
 it does not add content or guarantee the same fullness for different resumes.
+When the first render passes all blocking QA gates, auto-fit preserves that
+layout immediately, including explicit overrides. Extra bottom whitespace is
+an advisory and cannot trigger replacement by legacy expansion presets. Failed
+first renders still use the existing bounded search and final publication gate.
 
 Both formats are generated in a staging directory. QA failures retain rejected
 DOCX/PDF candidates and preserve accepted files. Publication backs up only the

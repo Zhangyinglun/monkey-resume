@@ -127,6 +127,11 @@ def _failed_checks(report: dict[str, Any]) -> set[str]:
 
 def _diagnose_direction(report: dict[str, Any]) -> str:
     """Return ``'shrink'``, ``'expand'``, or ``'pass'`` based on QC failures."""
+    # Preferred whitespace limits are advisories, not failed layout gates.
+    # Keep a valid default or explicit layout instead of replacing its styling
+    # just to chase the legacy 8 mm bottom-whitespace preference.
+    if report.get("verdict") == "PASS":
+        return "pass"
     checks = {c["name"]: c for c in report.get("checks", [])}
 
     page_count = checks.get("page_count", {}).get("detail", {}).get("count", 1)
