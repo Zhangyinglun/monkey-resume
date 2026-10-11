@@ -31,6 +31,17 @@ The existing factual audit arguments are unchanged. Given those arguments:
 - `--format both --output-file target.docx`: `target.docx` and `target.pdf`.
 - A contradictory explicit format and suffix is rejected rather than silently renamed.
 
+Without layout flags, DOCX generation uses the approved full-page sample's
+settings: Carlito, A4, 12.7 mm top/bottom margins and 15.24 mm left/right
+margins. Font scale is 1.1; the actual DOCX half-point sizes are 10.5 pt for
+body/bullets, 16.5 pt for the name, 11.5 pt for contact/section headings,
+11 pt for company/project headings, and 10.5 pt for dates/details. These sizes
+were read from the generated DOCX, not inferred by multiplying the base tokens.
+Explicit layout flags still override defaults. `--compact` retains its existing
+compression preset, and `--auto-fit` starts from the approved defaults before
+trying existing bounded presets if needed. Auto-fit may change the final layout;
+it does not add content or guarantee the same fullness for different resumes.
+
 Both formats are generated in a staging directory. QA failures retain rejected
 DOCX/PDF candidates and preserve accepted files. Publication backs up only the
 matching same-stem files (including a stale other-format counterpart), with a rollback journal if a filesystem move fails.
@@ -81,7 +92,7 @@ text; Chinese filenames are tested, not Chinese resume typography.
 Line-height scaling changes paragraph leading independently of font size.
 A minimum of 1.1 times the font size prevents excessive compression; once this
 floor is reached, lower scales intentionally have no further effect. The first
-four auto-fit compression candidates have distinct leading at default sizes.
+four auto-fit compression presets retain distinct leading at their baseline sizes.
 
 Dependencies: python-docx 1.2.0 (MIT), pdf2image 1.17.0 (MIT), LibreOffice
 (MPL-2.0), Poppler (GPL-2.0-or-later), Carlito (SIL OFL-1.1). Only the

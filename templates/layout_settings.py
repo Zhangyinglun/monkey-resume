@@ -65,3 +65,9 @@ class LayoutSettings:
 
 
 DEFAULT_SETTINGS = LayoutSettings()
+
+# Approved DOCX sample settings. Keep legacy ReportLab defaults and auto-fit
+# compression presets unchanged; Word stores font sizes in half-point units.
+DOCX_DEFAULT_SETTINGS = LayoutSettings(
+    font_size_scale=1.1, margin_top_mm=12.7, margin_bottom_mm=12.7,
+)

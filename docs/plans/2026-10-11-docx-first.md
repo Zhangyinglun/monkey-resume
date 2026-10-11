@@ -23,3 +23,13 @@ grill-with-docs (grilling + domain-modeling) shared understanding confirmed;
 implement with tdd; code-review with separate Standards and Spec agents.
 Existing tracker/domain configuration is retained; no external tracker writes,
 push, PR, merge, or publication is authorized.
+
+## Approved default-layout follow-up
+
+After approving the full-page fictional sample and the main-branch merge, the
+user selected option A: make that sample's layout the default without extra
+flags. Use its verified Carlito sizes and 12.7 mm top/bottom, 15.24 mm side
+margins; preserve explicit overrides, auto-fit bounds, and existing QA gates.
+Regenerate the same fictional input without layout flags and compare it with
+the approved sample. Run regression tests and merge this scoped correction to
+remote main with CI verification; do not force-push or commit candidate caches.

@@ -22,7 +22,7 @@ from docx.text.run import Run
 
 from scripts.resume_shared import normalize_skill_items, validate_resume_content
 from templates.design_tokens import DEFAULT_TOKENS, DesignTokens
-from templates.layout_settings import DEFAULT_SETTINGS, LayoutSettings
+from templates.layout_settings import DOCX_DEFAULT_SETTINGS, LayoutSettings
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
@@ -70,7 +70,7 @@ def generate_docx(output_file: str, content_dict: dict[str, Any], base_dir: str,
     target = target_dir / output_file
     if target.exists():
         raise FileExistsError(f'Refusing to overwrite existing DOCX: {target}')
-    settings, design_tokens = layout or DEFAULT_SETTINGS, tokens or DEFAULT_TOKENS
+    settings, design_tokens = layout or DOCX_DEFAULT_SETTINGS, tokens or DEFAULT_TOKENS
     font_scale, line_height_scale = settings.effective_font_size_scale, settings.effective_line_height_scale
     section_spacing_scale, item_spacing_scale = settings.effective_section_spacing_scale, settings.effective_item_spacing_scale
     doc = Document()

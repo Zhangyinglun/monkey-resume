@@ -85,3 +85,22 @@ This certifies the recorded development renderer and fonts only; released
 LibreOffice, Microsoft Word, Google Docs, and Chinese resume typography were
 not validated. Chinese filenames were validated. PDF is the fixed visual
 reference; DOCX may reflow in other environments or after edits.
+
+## Approved sample promoted to defaults
+
+The user approved the full-page fictional sample's settings as the default.
+Inspection of the actual DOCX confirmed Carlito; 10.5 pt body/bullets, 16.5 pt
+name, 11.5 pt contact/section headings, 11 pt company/project headings, and
+10.5 pt dates/details. Margins are 12.7 mm top/bottom and 15.24 mm left/right.
+The stored settings retain the original 1.1 font scale; DOCX half-point
+serialization explains why the effective sizes are not simple decimal products.
+
+The same fictional input was regenerated without layout flags. Its document
+and styles XML exactly match the approved sample. New PDF, independently
+rendered DOCX, and approved PDF each contain one page and have zero pixel
+differences at 144 DPI. Both new page previews were visually inspected without
+clipping or overlap. No content, personal cache, or compression bounds changed.
+Default, explicit-override, compact-mode and auto-fit-start regressions pass.
+The complete suite passes 139 tests with zero skips (22.507 seconds), together
+with Ruff, skills-ref validation and git diff checks. Evidence remains outside
+the repository under `/workspace/monkey-resume-validation/approved-defaults*`.
