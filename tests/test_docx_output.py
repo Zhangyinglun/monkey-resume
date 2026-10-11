@@ -20,6 +20,62 @@ from tests.test_pdf_pipeline import prepare_audited_workspace, sample_resume
 
 
 class DocxTemplateTests(unittest.TestCase):
+    def test_default_layout_matches_approved_sample_settings(self) -> None:
+        from docx import Document
+
+        from templates.layout_settings import LayoutSettings
+
+        with tempfile.TemporaryDirectory() as temp:
+            default = Path(generate_docx('default.docx', sample_resume(), temp))
+            explicit = Path(generate_docx('explicit.docx', sample_resume(), temp,
+                            LayoutSettings(font_size_scale=1.1, margin_top_mm=12.7,
+                                           margin_bottom_mm=12.7)))
+            with zipfile.ZipFile(default) as actual, zipfile.ZipFile(explicit) as expected:
+                for part in ('word/document.xml', 'word/styles.xml'):
+                    self.assertEqual(actual.read(part), expected.read(part))
+            doc = Document(default)
+            self.assertEqual(doc.styles['Normal'].font.name, 'Carlito')
+            self.assertEqual(doc.styles['Normal'].font.size.pt, 10.5)
+            self.assertEqual(doc.paragraphs[0].runs[0].font.size.pt, 16.5)
+            self.assertEqual(doc.paragraphs[1].runs[0].font.size.pt, 11.5)
+            section = doc.sections[0]
+            for attr, expected_mm in [('top_margin', 12.7), ('bottom_margin', 12.7),
+                                      ('left_margin', 15.24), ('right_margin', 15.24)]:
+                self.assertAlmostEqual(getattr(section, attr).mm, expected_mm)
+
+    def test_cli_defaults_and_explicit_layout_overrides(self) -> None:
+        from templates.layout_settings import LayoutSettings
+
+        cases = [
+            ([], LayoutSettings(font_size_scale=1.1, margin_top_mm=12.7, margin_bottom_mm=12.7)),
+            (['--font-size-scale', '1.0', '--margin-top-mm', '7', '--margin-bottom-mm', '8',
+              '--margin-side-inch', '0.75', '--line-height-scale', '0.9'],
+             LayoutSettings(font_size_scale=1.0, margin_top_mm=7, margin_bottom_mm=8,
+                            margin_side_inch=0.75, line_height_scale=0.9)),
+        ]
+        for options, expected in cases:
+            with self.subTest(options=options), mock.patch.object(
+                sys, 'argv', ['generate_final_resume.py', '--input-json', 'source.json', *options]
+            ):
+                self.assertEqual(cli._build_layout(cli.parse_args()), expected)
+
+    def test_compact_mode_keeps_existing_font_compression(self) -> None:
+        with mock.patch.object(sys, 'argv', [
+            'generate_final_resume.py', '--input-json', 'source.json', '--compact'
+        ]):
+            self.assertEqual(cli._build_layout(cli.parse_args()).effective_font_size_scale, 0.92)
+
+    def test_auto_fit_starts_with_approved_defaults(self) -> None:
+        from scripts.layout_auto_tuner import AutoFitTrial, auto_fit_layout
+        from templates.layout_settings import LayoutSettings
+
+        expected = LayoutSettings(font_size_scale=1.1, margin_top_mm=12.7, margin_bottom_mm=12.7)
+        with mock.patch('scripts.layout_auto_tuner._run_trial',
+                        return_value=AutoFitTrial(expected, {'verdict': 'PASS', 'checks': []})) as run:
+            result = auto_fit_layout(sample_resume(), output_file='resume.pdf', max_trials=1)
+        self.assertEqual(run.call_args.args[2], expected)
+        self.assertEqual(result.best_layout, expected)
+
     def test_body_alignment_preserves_original_style(self) -> None:
         from docx import Document
         from docx.enum.text import WD_ALIGN_PARAGRAPH
@@ -70,7 +126,7 @@ class DocxTemplateTests(unittest.TestCase):
             self.assertGreaterEqual(header.paragraph_format.line_spacing.pt, 18.75)
             contact = doc.paragraphs[1]
             for size in contact._p.iter(qn('w:sz')):
-                self.assertEqual(size.get(qn('w:val')), '21')
+                self.assertEqual(size.get(qn('w:val')), '23')
 
     def test_missing_converter_is_clear_error(self) -> None:
         with mock.patch('templates.docx_resume_template.shutil.which', return_value=None):
@@ -127,13 +183,33 @@ class DocxPublicationTests(unittest.TestCase):
             return cli.main()
 
     def test_default_is_docx_and_pdf_explicit(self) -> None:
+        from docx import Document
+
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             self.assertEqual(self.invoke(root), 0)
             self.assertTrue((root / 'output/resume.docx').exists())
+            doc = Document(root / 'output/resume.docx')
+            self.assertEqual(doc.styles['Normal'].font.size.pt, 10.5)
+            self.assertAlmostEqual(doc.sections[0].top_margin.mm, 12.7)
             self.assertFalse((root / 'output/resume.pdf').exists())
             self.assertEqual(self.invoke(root, '--format', 'pdf'), 0)
             self.assertTrue((root / 'output/resume.pdf').exists())
+
+    def test_cli_explicit_layout_overrides_are_rendered(self) -> None:
+        from docx import Document
+
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            self.assertEqual(self.invoke(root, '--font-size-scale', '1.0',
+                                         '--margin-top-mm', '7', '--margin-bottom-mm', '8',
+                                         '--margin-side-inch', '0.75'), 0)
+            doc = Document(root / 'output/resume.docx')
+            self.assertEqual(doc.styles['Normal'].font.size.pt, 9.5)
+            self.assertAlmostEqual(doc.sections[0].top_margin.mm, 7, places=1)
+            self.assertAlmostEqual(doc.sections[0].bottom_margin.mm, 8, places=1)
+            self.assertAlmostEqual(doc.sections[0].left_margin.mm, 19.05)
+            self.assertAlmostEqual(doc.sections[0].right_margin.mm, 19.05)
 
     def test_both_exact_docx_source_is_exported(self) -> None:
         from pdf2image import convert_from_path

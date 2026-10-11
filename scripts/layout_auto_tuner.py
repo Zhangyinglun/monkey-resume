@@ -13,7 +13,7 @@ from typing import Any
 
 from scripts.check_pdf_quality import DEFAULT_MARGIN_THRESHOLDS, check_pdf_file
 from templates.docx_resume_template import generate_resume
-from templates.layout_settings import LayoutSettings
+from templates.layout_settings import DOCX_DEFAULT_SETTINGS, LayoutSettings
 
 # Checks that layout tuning can potentially fix (margins, page overflow).
 LAYOUT_FIXABLE_CHECKS = {
@@ -214,7 +214,7 @@ def auto_fit_layout(
         base_temp = Path(temp_dir)
 
         # Phase 1: Diagnostic pass
-        first_layout = hint_layout or LayoutSettings()
+        first_layout = hint_layout or DOCX_DEFAULT_SETTINGS
         first_trial = _run_trial(content, output_file, first_layout, base_temp / "trial-1")
 
         direction = _diagnose_direction(first_trial.report)

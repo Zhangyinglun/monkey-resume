@@ -7,6 +7,7 @@ from __future__ import annotations
 import argparse
 import sys
 import tempfile
+from dataclasses import replace
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -23,7 +24,7 @@ from scripts.layout_auto_tuner import (  # noqa: E402
 )
 from scripts.resume_shared import load_json_file, validate_resume_content  # noqa: E402
 from templates.docx_resume_template import generate_resume  # noqa: E402
-from templates.layout_settings import LayoutSettings  # noqa: E402
+from templates.layout_settings import DOCX_DEFAULT_SETTINGS, LayoutSettings  # noqa: E402
 
 
 def parse_args() -> argparse.Namespace:
@@ -54,7 +55,7 @@ def parse_args() -> argparse.Namespace:
         help="Source Snapshot path (default: base-resume.json beside input)",
     )
     parser.add_argument(
-        "--font-size-scale", type=float, default=None, help="Font size scale (0.7-1.3)"
+        "--font-size-scale", type=float, default=None, help="Font size scale (0.7-1.3; default: 1.1)"
     )
     parser.add_argument(
         "--line-height-scale", type=float, default=None, help="Line height scale (0.7-1.3)"
@@ -66,10 +67,10 @@ def parse_args() -> argparse.Namespace:
         "--item-spacing-scale", type=float, default=None, help="Item spacing scale (0.7-1.3)"
     )
     parser.add_argument(
-        "--margin-top-mm", type=float, default=None, help="Top margin in mm (default: 5.0)"
+        "--margin-top-mm", type=float, default=None, help="Top margin in mm (default: 12.7)"
     )
     parser.add_argument(
-        "--margin-bottom-mm", type=float, default=None, help="Bottom margin in mm (default: 5.0)"
+        "--margin-bottom-mm", type=float, default=None, help="Bottom margin in mm (default: 12.7)"
     )
     parser.add_argument(
         "--margin-side-inch",
@@ -87,16 +88,15 @@ def parse_args() -> argparse.Namespace:
 
 def _build_layout(args: argparse.Namespace) -> LayoutSettings:
     """Build LayoutSettings from CLI args."""
-    return LayoutSettings(
-        font_size_scale=args.font_size_scale,
-        line_height_scale=args.line_height_scale,
-        section_spacing_scale=args.section_spacing_scale,
-        item_spacing_scale=args.item_spacing_scale,
-        margin_top_mm=args.margin_top_mm if args.margin_top_mm is not None else 5.0,
-        margin_bottom_mm=(args.margin_bottom_mm if args.margin_bottom_mm is not None else 5.0),
-        margin_side_inch=(args.margin_side_inch if args.margin_side_inch is not None else 0.6),
-        compact_mode=args.compact,
-    )
+    overrides = {
+        name: getattr(args, name)
+        for name in ('font_size_scale', 'line_height_scale', 'section_spacing_scale',
+                     'item_spacing_scale', 'margin_top_mm', 'margin_bottom_mm', 'margin_side_inch')
+        if getattr(args, name) is not None
+    }
+    if args.compact and args.font_size_scale is None:
+        overrides['font_size_scale'] = 1.0  # Retain the existing compact-mode preset.
+    return replace(DOCX_DEFAULT_SETTINGS, **overrides, compact_mode=args.compact)
 
 
 def _next_rejected_path(output_dir: Path, output_name: str) -> Path:

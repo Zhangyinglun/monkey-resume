@@ -128,6 +128,10 @@ python3 "$MONKEY_RESUME_DIR/scripts/check_pdf_geometry.py" \
 
 Once content fits, compile through the publication gate with layout-only auto-tuning:
 
+The default DOCX layout uses Carlito, 10.5 pt body text, 12.7 mm top/bottom
+margins and 15.24 mm side margins. Explicit flags override it; auto-fit starts
+there and may adjust layout within the existing bounds to pass QA.
+
 ```bash
 python3 "$MONKEY_RESUME_DIR/scripts/generate_final_resume.py" \
   --input-json "$USER_WORKSPACE/cache/resume-working.json" \
