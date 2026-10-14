@@ -17,6 +17,8 @@
 - Full active evidence and latest supported display name read.
 - Complete draft rewritten for the JD, with supported skills and important omission
   reasons, bound to the current context; no additional plan/language files.
+- All five required rules in `resume-language-quality.md` checked against prose
+  and evidence; concise presentation preserves actual capability and metric scope.
 - Traceability checks pass without being described as semantic proof.
 - Actual candidate DOCX/PDF remain unaccepted until unified review completes.
 
@@ -26,6 +28,8 @@
   both assertions and important omissions, and gives concrete findings.
 - Actual PDF is a readable single A4 page without out-of-page text/placeholder
   content; all DOCX/PDF pages were visually inspected in the tested environment.
+- Every bullet ending verified against the required rendered-width rule, including
+  single-line bullets; physical QA alone does not certify this check.
 - Review comes from the actual review context, not writer-generated PASS; ordinary
   suggestions do not mask unresolved blocking findings.
 - Candidate, draft, context and exact artifacts match the review bindings.

@@ -4,20 +4,85 @@ Write a coherent professional account of the candidate's real work, tailored to
 the JD. The host model owns editing judgment; counts and regular expressions are
 not writing-quality verdicts.
 
-## Contribution first
+## Required writing and wrapping rules
 
-Make the system's purpose, candidate's action, meaningful mechanism and result
-understandable. An authentic internal name is useful only beside its purpose:
-“Built PulseBus, a queue backend carrying authentication events…” tells more than
-“Developed Event Hubs-based PulseBus infrastructure…”. Explain a technical term
-when its meaning is needed to understand the contribution, not every standard
-technology name.
+Apply all five rules during writing and independent review. These are delivery
+requirements, not optional style suggestions; judge meaning as a model and inspect
+actual rendering rather than imposing a verb dictionary or word-count quota.
+
+1. **Fill the last line.** Every bullet's final rendered line must occupy **more
+   than 50%** of its available text width, including single-line bullets. Measure
+   from the bullet text's left edge (the hanging-indent text edge, excluding the
+   marker) to the paragraph's right text boundary, not half the page or half the
+   preceding line. Check both actual DOCX and same-source PDF previews. At exactly
+   50% the rule is not met. Rewrite a sparse ending by shortening to fewer lines
+   or adding useful supported detail about the same contribution; keep readable
+   fonts and normal spacing. Padding, extra unrelated work and forced line breaks
+   are not fixes.
+2. **One contribution plus its result.** Center each bullet on one action or
+   coherent contribution and its supported outcome. Include mechanisms only when
+   they explain that contribution. Several steps of one recovery workflow can
+   belong together; separate unrelated projects, deployment work and patent work
+   rather than joining them to save space. A result can be qualitative: never
+   invent a metric or causal improvement when none is supported.
+3. **Show capability without audit prose.** Keep recruiter-facing text direct and
+   remove redundant qualifications. Preserve detailed denominators, exclusions
+   and source explanations in evidence/review records instead of copying every
+   caveat into the resume. For example, use “automatically mitigated” to distinguish
+   automation from later manual work rather than appending “excluding later human
+   handling.” List supported skill names such as “Kafka, RocketMQ” without routine
+   parenthetical labels such as “(application integration)”; let the experience
+   verb explain what the candidate did. Keep the shortest necessary qualifier
+   when its removal would materially broaden a metric or responsibility. If a
+   claim cannot be made both clear and faithful, choose another supported claim
+   or ask for clarification; brevity never upgrades integration to administration.
+4. **Lead with an action verb.** Start every experience/project bullet and every
+   additional sentence within it with a verb describing the candidate's action,
+   such as “Built,” “Diagnosed” or “Led.” Attach a result as a clause of that action
+   rather than a separate sentence beginning with a metric or “The platform.”
+   Headers, summary and skill labels are not experience sentences and need not
+   follow this pattern. Choose the right verb, not one from a fixed approved list.
+5. **Name recognizable products directly.** Use a well-known product/platform
+   name when the evidence establishes it, rather than an anonymous description.
+   For example, prefer “Built authentication services for Azure…” over “Built
+   authentication services for a platform with millions of enterprise tenants…”
+   when Azure is supported; retain scale only if it adds a distinct useful signal.
+   An employer name alone does not establish a product. Explain an unfamiliar
+   internal system briefly by its purpose: “Built PulseBus, a queue backend for
+   authentication events…”; familiar names need no generic explanation.
 
 Use supported scale, reliability work, design choices and technical leadership.
 Metrics are useful when they communicate a real result, not obligatory decorations
 on every bullet. An overall service SLA is not a component's measured uptime;
 diagnostic time is not full incident recovery; evaluation/deployment is not model
 training. Preserve those distinctions even when the shorter sentence sounds better.
+
+## Technical resume voice
+
+Retain the useful technical-register and plain-language guidance from the earlier
+writing guide alongside the five required rules:
+
+- Use an implied subject, not “I,” “my” or “we”; choose a precise ownership verb
+  that distinguishes building, contributing, evaluating and leading. Keep the
+  tone technical, objective and concise rather than promotional or conversational.
+- Replace “responsible for,” “played a key role in” and “facilitated the
+  implementation of” with the actual action. Remove empty praise such as
+  “cutting-edge,” “seamless” and “successfully” when it adds no information.
+- Prefer a concrete outcome or purpose to an unsupported ending such as
+  “significantly enhancing performance” or “ensuring maximum efficiency.” A
+  qualitative result is enough when supported; a quantified result is not a quota.
+- Vary sentence construction where useful while keeping action-first openings.
+  Use direct conjunctions rather than “not only ... but also,” and natural lists
+  rather than artificial three-part lists. Avoid repeating the same evidence or
+  result in several bullets just to strengthen the impression.
+- Preserve canonical technical names and normal punctuation. Use standard
+  industry shorthand when the evidence entails it (for example, embedding
+  retrieval grounding LLM responses can be described as RAG). Rare synonyms,
+  invented errors, slang and detector-evasion tricks do not improve a resume.
+
+Apply these as editing guidance, not keyword bans or mechanical style quotas.
+Judge whether the reader can identify the contribution, mechanism and result;
+do not flag a standard technical term merely because it appears in a cliché list.
 
 ## JD-driven summary and ordering
 
@@ -32,15 +97,18 @@ and internal engineering tools do not become irrelevant simply because they use 
 
 ## Single-page editing
 
-Remove repetition, merge related contributions and shorten secondary detail before
-shrinking the layout. Preserve distinct work and the correct metric/project owner.
+Remove repetition and shorten secondary detail before shrinking the layout.
+Consolidate details of the same contribution, not separate contributions, and
+preserve distinct work and the correct metric/project owner.
 Document important omissions with specific reasons; reasonable compression need
-not reproduce every source fact. Fixed bullet lengths, skill-group counts and
-action-verb dictionaries are optional signals, never mandatory writing gates.
+not reproduce every source fact. There is no fixed word count, bullet count,
+skill-group count or approved action-verb dictionary.
 
-Ordinary style improvements remain suggestions. Block content that changes facts,
+Block violations of the five required rules as well as content that changes facts,
 unjustifiably loses strong relevant evidence, or prevents the reader understanding
-the contribution. Use exact locations and explain why it matters.
+the contribution. Other style improvements remain suggestions. Use exact locations
+and explain the unmet rule or factual problem; do not fill the page with weaker
+work merely to satisfy wrapping.
 
 ## Review
 

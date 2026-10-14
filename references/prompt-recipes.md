@@ -19,7 +19,9 @@ entities using existing identity and evidence, not a display heading alone.
 Use the original JD and complete valid cache. Identify core needs, match actual
 work, then write a clear one-page professional resume. Put relevant contributions
 first within each job, rewrite summary, and organize supported skills. Preserve
-scope and explain internal system purposes. Compress secondary detail and justify
+scope and explain internal system purposes. Read and apply all five required rules
+in `resume-language-quality.md` before writing; consolidate only details belonging
+to the same contribution. Compress secondary detail and justify
 important omissions. Maintain only the draft and its evidence references; computed
 metadata belongs to programs. Ask about material fact gaps, not routine formatting
 choices or previously confirmed answers.
@@ -34,8 +36,10 @@ judging the writer's omission reasons. Correct numbers with incorrect objects or
 responsibility remain errors. A linked claim is not proof of entailment.
 
 Give location, original quote or missing contribution, source IDs, reason and a
-focused correction. Distinguish established factual errors, unjustified important
-omissions and expression failures from ordinary style preferences and true gaps.
+focused correction. Verify all five required writing/wrapping rules in
+`resume-language-quality.md`; unmet rules block acceptance. Distinguish those
+violations, established factual errors, unjustified important omissions and
+expression failures from other style preferences and true gaps.
 Do not demand all atomic facts be retained or invent new facts to satisfy the JD.
 
 Inspect actual same-source DOCX/PDF previews after programmatic measurement.

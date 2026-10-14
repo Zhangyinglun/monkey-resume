@@ -5,6 +5,10 @@ dispatch models or decide semantic entailment. The host obtains a fresh independ
 reviewer and records actual results, never copies a PASS from an example or treats
 the writer's self-review as approval.
 
+Read `resume-language-quality.md` before blind reading. Apply its five required
+writing/wrapping rules to every experience/project bullet; carry the same checks
+through evidence review and actual preview inspection.
+
 ## 1. Freeze and dispatch blind reading
 
 Use `generate_final_resume.py prepare --author-id "$AUTHOR_ID"` with the real
@@ -44,13 +48,22 @@ linked claims or JD keywords.
 - Assess JD fit, clear contributions and skills organization. Distinguish direct
   support, transferable evidence, partial support and not shown. “Not shown” is
   not proof of a candidate Gap. Preserve uncertainty; do not invent evidence.
-- Classify factual errors, unjustified important omissions and unintelligible
-  contributions as `blocking`; general stylistic improvements are `suggestion`.
-  No mandatory word count, bullet count, verb quota, ATS percentage or hiring
-  probability. Judge professional evidence, not protected attributes or prestige.
+- Check the required writing rules against the visible prose and original meaning:
+  focused contribution/result, concise but faithful scope, action-first sentences
+  and supported recognizable product names. Do not demand audit caveats in every
+  bullet or skill label; a short sentence must still preserve its metric's object
+  and actual responsibility. Check rendered endings in the next stage.
+- Classify violations of those required rules, factual errors, unjustified
+  important omissions and unintelligible contributions as `blocking`; other
+  stylistic improvements are `suggestion`. No arbitrary word count, bullet count,
+  verb dictionary, ATS percentage or hiring probability. Judge professional
+  evidence, not protected attributes or prestige.
 
 Completion requires the full assertion and important-omission review, not merely
-a recruiter impression or a successful traceability audit. Preserve the blind
+a recruiter impression or a successful traceability audit. Record the actual
+writing-rule checks/results in `evidence_review.assertion_review` and any unmet
+rule in `content.findings`; do not approve merely because an action verb appears.
+Preserve the blind
 reading and evidence/omission checks in the review file. Publication requires
 populated results and their context binding, and retains them unchanged; it does
 not mechanically certify their semantic completeness.
@@ -63,6 +76,16 @@ fonts, margins and hierarchy. One readable A4 page is required, not a page-count
 guess or text-only review. An ODT fallback is not strict DOCX equivalence evidence.
 Unavailable images or rendering leave visual review pending, even if content was
 reviewed. Physical QA and actual visual inspection are complementary.
+
+Check every bullet's final-line fill against `resume-language-quality.md`, even
+when physical QA reports PASS. Existing sparse-ending diagnostics only detect
+some short endings; they do not certify the required more-than-half-width rule.
+Record each bullet's location and measured or clearly observed final-line fill in
+`visual.observations` for both previews; add this field if the template omits it.
+This record is a host/reviewer duty, not an existing programmatic validation gate.
+An ending at or below half width requires
+`visual.status: blocked` and a corresponding `blocking` content finding.
+Unavailable or ambiguous measurement leaves visual review pending, not PASS.
 
 ## 4. Complete the bound review
 
@@ -95,8 +118,9 @@ status/findings and keep the candidate unpublished. Do not turn a screening
 
 ## 5. Fix or publish
 
-Fix concrete factual, omission, clarity or format defects. If overfilled, improve
-selection/merging before compressing layout; `--auto-fit` changes layout only.
+Fix required-rule violations and concrete factual, omission, clarity or format
+defects. If overfilled, improve selection and focused wording before compressing
+layout; `--auto-fit` changes layout only.
 Reprepare after any draft/render change, and obtain new review against current
 artifacts/context. Never rehash old conclusions into new bindings. Updated facts,
 preferences or conflicts also stale the candidate. Continue only with a concrete

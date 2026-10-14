@@ -11,7 +11,8 @@ Every published PDF is exported from that exact DOCX by LibreOffice Writer.
 Even DOCX-only delivery requires LibreOffice: the exported QA PDF must
 pass measured one-page A4, text, bounds and readable-font QA before publishing.
 The compiler validates traceability, not semantic entailment. Complete independent
-content and actual visual review are required before acceptance; fixed section,
+content and actual visual review are required before acceptance. The required
+writing/wrapping rules in `resume-language-quality.md` also apply; other section,
 keyword and whitespace preferences are advisory. Auto-fit changes layout only
 and measures the DOCX-derived PDF. There is no old-runtime compatibility contract.
 
@@ -90,6 +91,13 @@ fonts, hyperlinks, margins, page breaks, and extracted text. The independent
 OpenAI preview may attempt an ODT fallback on failure; a fallback is not valid
 proof of strict equivalence. Publication intentionally uses bounded direct
 LibreOffice conversion with errors instead.
+
+Check every bullet ending using the actual rendered text width defined in
+`resume-language-quality.md`. Existing physical QA's sparse-ending diagnostic is
+not a complete check of that rule: a programmatic PASS still requires the host
+and independent reviewer to verify every bullet in both previews. Revise prose
+and reprepare when an ending fails; preserve the accepted files until the new
+candidate's complete content and visual review passes.
 
 ## What identical means
 
