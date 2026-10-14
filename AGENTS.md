@@ -14,10 +14,11 @@ Repository development instructions for the portable `monkey-resume` Skill packa
 
 1. Read `SKILL.md`.
 2. Resolve the repository directory as `MONKEY_RESUME_DIR`. Use `~/Documents/MonkeyResume` as the default `USER_WORKSPACE`; pass an explicit external `--workspace` for another candidate workspace.
-3. Use `scripts/extract_resume_text.py` for PDF, DOCX, Markdown, or text input.
-4. Manage candidate facts through `scripts/evidence_ledger_manager.py` and projection cache through `scripts/resume_cache_manager.py`, using the same external `USER_WORKSPACE` throughout.
-5. Run `scripts/audit_factual_integrity.py` before rendering. `scripts/generate_final_resume.py` enforces the same audit and requires the manifest, evidence ledger, and Source Snapshot.
-6. Read `CONTEXT.md` for domain language and `references/resume-working-schema.md` for data contracts before changing evidence or manifest behavior.
+3. For source import, read `references/source-ingestion.md`; use `scripts/evidence_ledger_manager.py prepare/commit`. The model reads complete sources and proposes meaning; extraction only preserves located text. Use the same external `USER_WORKSPACE` throughout.
+4. For tailoring, read `references/resume-working-schema.md`; initialize and write one draft with `scripts/draft_compiler.py`. Programs compute manifests. Audit checks traceability, not semantic entailment.
+5. For delivery, read `references/docx-output.md` and `references/recruiter-review-protocol.md`; use `scripts/generate_final_resume.py prepare`, then independent content and actual visual review, then `publish`. Incomplete review/rendering leaves a candidate, not an Accepted Resume.
+
+Read `CONTEXT.md` before changing domain terms or evidence/review behavior. Legacy caches require a deliberately new external workspace or separately authorized migration; preserve existing data and history. Restart OpenCode after Skill or agent-instruction updates.
 
 ## Development Checks
 

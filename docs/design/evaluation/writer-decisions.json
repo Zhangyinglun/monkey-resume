@@ -1,0 +1,23 @@
+{
+  "draft-a": {
+    "omissions": [
+      {"claim_ids": ["H3"], "reason": "Advertising UI implementation is secondary to this infrastructure role."}
+    ]
+  },
+  "draft-b": {
+    "omissions": [
+      {"claim_ids": ["N4", "N5", "N6"], "reason": "These are AI/product details and are unrelated to infrastructure."},
+      {"claim_ids": ["H3"], "reason": "Advertising UI is secondary."}
+    ]
+  },
+  "draft-c": {
+    "omissions": [
+      {"claim_ids": ["H3"], "reason": "Advertising UI is secondary."}
+    ]
+  },
+  "draft-d": {
+    "omissions": [
+      {"claim_ids": ["N5", "N6", "H3"], "reason": "Prioritize queue reliability, cooling diagnostics and technical leadership; shorten secondary support and development-practice detail for one-page delivery. Core programming and automation remain demonstrated elsewhere."}
+    ]
+  }
+}

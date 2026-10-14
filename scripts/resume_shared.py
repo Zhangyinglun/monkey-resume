@@ -34,6 +34,7 @@ def resolve_user_workspace(workspace: Path) -> Path:
     """Expand and resolve a candidate workspace supplied by argparse."""
     return workspace.expanduser().resolve()
 
+
 _QUANTIFIED_RESULT_PATTERNS = (
     re.compile(r"(?:\d+(?:\.\d+)?\s*(?:%|x\b|×))", re.IGNORECASE),
     re.compile(
@@ -276,51 +277,6 @@ def canonical_json_fingerprint(payload: dict[str, Any]) -> str:
         separators=(",", ":"),
     ).encode("utf-8")
     return f"sha256:{hashlib.sha256(canonical).hexdigest()}"
-
-
-def slugify_token(value: str) -> str:
-    """Return a URL-safe lowercase slug."""
-    normalized = re.sub(r"[^a-z0-9]+", "-", value.casefold()).strip("-")
-    return normalized[:36] or "item"
-
-
-def stable_identifier(prefix: str, *parts: str) -> str:
-    """Return a deterministic stable identifier with a truncated SHA-256 digest."""
-    canonical = "\x1f".join(" ".join(part.casefold().split()) for part in parts)
-    digest = hashlib.sha256(canonical.encode("utf-8")).hexdigest()[:12]
-    return f"{prefix}-{slugify_token(parts[0] if parts else prefix)}-{digest}"
-
-
-def entity_anchor(resume: dict[str, Any], entity_type: str, entity_key: str) -> tuple[str, str]:
-    """Return the display label and identity string for a structural entity."""
-    if entity_type == "profile":
-        return "Candidate Profile", "profile"
-    match = re.fullmatch(r"([a-z]+)\[(\d+)\]", entity_key)
-    if match is None:
-        return entity_key, entity_key
-    section, index_text = match.groups()
-    try:
-        index = int(index_text)
-    except ValueError:
-        return entity_key, entity_key
-    entries = resume.get(section, [])
-    entry = entries[index] if isinstance(entries, list) and index < len(entries) else {}
-    anchor_fields = {
-        "skill": ("category",),
-        "experience": ("company", "title", "dates"),
-        "project": ("name", "dates"),
-        "education": ("school", "degree", "dates"),
-        "certification": ("name", "issuer", "dates"),
-        "award": ("name", "organization", "dates"),
-    }.get(entity_type, ("name",))
-    values = [
-        str(entry.get(field, "")).strip()
-        for field in anchor_fields
-        if str(entry.get(field, "")).strip()
-    ]
-    label = " — ".join(values) or entity_key
-    identity = "\x1f".join(values) or entity_key
-    return label, identity
 
 
 def iter_resume_text_fields(

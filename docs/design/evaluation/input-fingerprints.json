@@ -1,0 +1,11 @@
+{
+  "sha256": {
+    "job-description.md": "8fd9068df2df2206416b9a68af856544d49c55bc812c8f10ff98f23d1fd5f778",
+    "drafts.json": "62e3403cf29b77c856c76bc0524f911f459b8f73a5a52fe9026a464629b64dc9",
+    "candidate-evidence.md": "dcb90222d45c8a30b6fa255a1f953aeafe26441395ecc15d667c970e6773d429",
+    "writer-decisions.json": "9ed9d9e24a7cb23c4d10ca4d4e4f3dc276eb23944c0a9070405e38105c42fa73",
+    "review-instructions.md": "3759e43e0abf45003b496d8347a151d1c3a0ae81a684560ee2c0a568ac184f17",
+    "reviewer-a-blind.json": "e41c453a41e7fccda1f5713f5a12d220c69692d8c25b9cff531909144a174750",
+    "reviewer-b-blind.json": "163900004b8f3c7c7f4aa1f738e0ae199db999ef34ca83012bad8a734650a392"
+  }
+}

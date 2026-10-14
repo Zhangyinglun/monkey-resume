@@ -2,102 +2,86 @@
 
 [简体中文](README.zh-CN.md)
 
-> **Evidence-grounded resume tailoring.** Zero hallucinations, traceable claims, and verified single-page A4 DOCX delivery with optional matching PDF.
+An Agent Skill for importing candidate documents into a reusable local evidence
+cache and writing JD-specific, one-page English resumes. The host model reads
+full sources and writes the prose; local scripts preserve provenance, validate
+bindings and render editable DOCX with a same-source PDF.
 
-MonkeyResume turns your real experience into role-specific resumes without inventing skills, metrics, or titles. Every claim links to an evidence ledger, and publication is blocked if any bullet cannot be traced.
+Traceability is not proof of truth. Publication requires a complete independent
+content review and actual visual inspection, plus measured one-page A4 QA.
+Unsupported requirements remain gaps, not invented experience.
 
----
-
-## Resume Generation Records
-
-Successful generations, including DOCX-only delivery, automatically retain independent historical QA PDFs. Open
-`$USER_WORKSPACE/resume_history/index.html` to find the company, role, optional
-posting URL, generation time, and the exact historical resume. Pass known target
-metadata with `--company`, `--job-title`, and `--job-url`; unknown values may be
-omitted. Always pass the same external `--workspace` used for your evidence.
-
-For generation examples, URL backfill, and directory recovery, see
-[Resume Generation Records](references/resume-generation-records.md).
-
-## Quick Start (~2 minutes)
-
-### 1. Clone the repository
+## Install
 
 ```bash
 git clone https://github.com/Zhangyinglun/monkey-resume.git ~/Projects/monkey-resume
 cd ~/Projects/monkey-resume
-```
-
-### 2. Install dependencies (Python 3.9+)
-
-```bash
 python3 -m pip install -r requirements.txt
-```
-
-### 3. Register as an Agent Skill
-
-```bash
 mkdir -p ~/.agents/skills
 ln -s ~/Projects/monkey-resume ~/.agents/skills/monkey-resume
 ```
 
-### 4. Run with your AI agent
+Rendering also needs LibreOffice, Poppler and Carlito fonts; see
+[output and QA](references/docx-output.md) for environment limitations.
+Restart OpenCode after installing/updating the Skill or agent instructions.
 
-Provide your resume and job description (JD), then prompt:
+## Use with your agent
 
-```text
-Use $monkey-resume to tailor my resume for this role and generate a verified single-page DOCX.
-```
-
----
-
-## Key Features
-
-- **No Hallucinations**: Only writes from verified facts. Unsupported JD points remain visible gaps.
-- **Full Traceability**: Every resume bullet links directly to a verified Claim ID.
-- **JD Alignment**: Maps job requirements into direct, transferable, or missing capabilities.
-- **Physical Geometry Gate**: Guarantees a clean single-page A4 layout without overflow.
-- **Safe Rollback**: QA-rejected candidates land in `rejected/`; handled history/publication failures preserve your last accepted DOCX/PDF.
-
----
-
-## 5-Step Pipeline
+**Import only:** provide a resume, work notes or candidate information document:
 
 ```text
-[1. Snapshot] ➔ [2. Ledger] ➔ [3. Analyze JD] ➔ [4. Plan & Draft] ➔ [5. Audit & Publish]
+Use $monkey-resume to import this document into my candidate cache. No JD or output resume yet.
 ```
 
-1. **Snapshot**: Ingest base resume (`.pdf`, `.docx`, `.md`, `.txt`) into an immutable snapshot.
-2. **Ledger**: Extract experience into reusable, entity-bound Atomic Claims.
-3. **Analyze JD**: Match requirements against candidate evidence; ask targeted clarification only.
-4. **Plan & Draft**: Select evidence into a Projection Plan and draft recruiter-ready bullets.
-5. **Audit & Publish**: Audit facts, render DOCX with a same-source QA PDF, and verify 1-page A4 geometry before publication.
+**Tailor and deliver:** provide the original JD and existing candidate sources:
 
----
+```text
+Use $monkey-resume to tailor my resume for this role. Independently review the content and actual one-page DOCX/PDF before publishing. Deliver DOCX, and PDF if requested.
+```
 
-## Workspace Architecture
+1. Preserve original bytes and ordered text blocks; the model reads the full
+   source and proposes facts with exact excerpts. Commit validated imports.
+2. Analyze the original JD and match against the complete current cache,
+   including corrections, project ownership and important older experience.
+3. Write one draft: `target`, `resume`, `evidence_links`, `omissions`.
+   Programs compute manifests and fingerprints; there is no separate writing plan.
+4. `prepare` freezes the draft, artifact hashes, output name and review template.
+   Review first JD/visible resume blind, then full evidence and omissions; inspect
+   every page of the actual DOCX preview and same-source PDF.
+5. `publish` requires passing current review and physical QA. Incomplete review or
+   rendering leaves a candidate only; handled failures preserve accepted outputs
+   and history. No automatic PASS or self-review approval.
 
-Your personal resume data and generated DOCX/PDF files stay isolated in the candidate workspace.
-The CLI defaults to `~/Documents/MonkeyResume`; pass `--workspace` to override it:
+Commands and contracts: [SKILL.md](SKILL.md),
+[source ingestion](references/source-ingestion.md),
+[draft schema](references/resume-working-schema.md),
+[review protocol](references/recruiter-review-protocol.md).
+
+## Personal workspace
+
+Default: `~/Documents/MonkeyResume`. Use the same external `--workspace` for one
+candidate throughout; personal data never belongs in this repository.
 
 ```text
 USER_WORKSPACE/
-├── cache/
-│   ├── base-resume.json          # Immutable source snapshot
-│   ├── candidate-evidence.json   # Multi-JD candidate evidence ledger
-│   ├── jd-analysis.json          # JD requirement mapping
-│   ├── resume-working.json       # Current tailored resume data
-│   └── resume-changes.json       # Field-level tailoring changelog
-└── resume_output/
-    ├── Candidate_Resume_Role.docx # Verified editable DOCX
-    └── rejected/                 # Failed runs (auto-isolated)
+├── cache/candidate-state.json   # Ledger, Profile and immutable source registry
+├── cache/sources/              # Original bytes and located text blocks
+├── cache/draft.json            # Model-authored draft (example location)
+├── candidates/<uuid>/          # Frozen candidate, DOCX/PDF and review template
+├── resume_output/              # Accepted requested deliverables
+└── resume_history/index.html   # Offline directory of accepted generations
 ```
 
----
+Document reimports are idempotent. Candidate answers support optional `--event-id`
+for retry deduplication; explicit source-backed `reactivate`/`supersedes` corrections
+preserve history. Old-schema caches are refused: choose a deliberately new external
+workspace or separately authorize migration. No migration CLI is shipped.
 
-## Development Checks
+Accepted history retains the same-source PDF even for DOCX-only delivery, together
+with review and candidate records. Known company/role/job URL belong in draft
+`target`; see [history maintenance](references/resume-generation-records.md).
 
-Run the complete test suite:
+## Development checks
 
 ```bash
 python3 -m pip install -r requirements-dev.txt
@@ -106,15 +90,6 @@ ruff check scripts templates tests
 python3 -m unittest discover -s tests -v
 ```
 
----
-
 ## License
 
 [MIT](LICENSE)
-
-
-## DOCX-first output / 默认 DOCX
-
-默认交付可编辑 DOCX，保留 `--format pdf` 和 `--format both`。PDF 由同一份 DOCX 经 LibreOffice 转换，不维护两套排版。旧命令显式指定 `.pdf` 仍输出 PDF。需安装 LibreOffice、Poppler 和 Carlito 字体。
-
-Default output is editable DOCX. PDF is exported from the exact same document. See [output and QA guide](references/docx-output.md) for dependencies, compatibility, the pinned Apache-2.0 OpenAI public QA tool, and renderer/font limitations.

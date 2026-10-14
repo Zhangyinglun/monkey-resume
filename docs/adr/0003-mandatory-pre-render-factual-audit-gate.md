@@ -15,3 +15,11 @@ The factual auditor (`scripts/audit_factual_integrity.py`) is enforced as a **ma
 ## Consequences
 - Guarantees zero unverified claims reach the published PDF.
 - Forces all tailored modifications to be deterministically grounded in candidate evidence.
+
+## Superseded in issue #12
+
+[ADR 0005](0005-model-led-draft-and-review-gated-publication.md) retains mandatory
+pre-render traceability compilation but rejects this ADR's semantic guarantees.
+Programs cannot certify paraphrase entailment, metric-object truth, ownership
+wording or completeness. Actual independent content and visual review now gates
+publication; the historical zero-unverified-claims guarantee is not valid.

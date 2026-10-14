@@ -2,103 +2,72 @@
 
 [English](README.md)
 
-> **基于证据的简历定制工具。** 零幻觉生成、声明全流程可追溯、默认交付经验证的单页 A4 DOCX，可选同源 PDF。
+将候选人资料导入可复用的本地证据缓存，并按 JD 定制单页英文简历的 Agent
+Skill。宿主模型阅读完整原文、理解事实并写作；本地脚本保存来源、检查绑定、
+生成可编辑 DOCX 和同源 PDF。
 
-MonkeyResume 根据你的真实经历生成岗位定制简历，绝不虚构技能、成果或头衔。每条声明绑定事实账本，无法追溯的内容直接阻断发布。
+可追溯不等于事实正确。发布需要完整独立内容审查、真实视觉检查和单页 A4
+物理 QA。没有证据的岗位要求保留为缺口，不补成经历。
 
----
-
-## 简历生成记录
-
-每次成功生成并通过自动校验后（包括仅交付 DOCX），自动保存独立历史 QA PDF；失败不收录。
-打开 `$USER_WORKSPACE/resume_history/index.html`，即可按公司、岗位找到当时
-那版简历及生成时间、岗位链接。同一岗位多次生成互不覆盖，不代表已投递。
-
-生成时通过 `--company`、`--job-title`、`--job-url` 提供已知目标信息；未知值
-可以省略。始终传入与证据账本相同的外部 `--workspace`。岗位链接之后可通过
-`resume_history_manager.py set-url` 补录。
-
-完整命令、链接补录及目录恢复见 [简历生成记录说明](references/resume-generation-records.md)。
-
-## 快速开始（约 2 分钟）
-
-### 1. 克隆仓库
+## 安装
 
 ```bash
 git clone https://github.com/Zhangyinglun/monkey-resume.git ~/Projects/monkey-resume
 cd ~/Projects/monkey-resume
-```
-
-### 2. 安装依赖（Python 3.9+）
-
-```bash
 python3 -m pip install -r requirements.txt
-```
-
-### 3. 注册为 Agent Skill
-
-```bash
 mkdir -p ~/.agents/skills
 ln -s ~/Projects/monkey-resume ~/.agents/skills/monkey-resume
 ```
 
-### 4. 在 AI Agent 中调用
+渲染还需 LibreOffice、Poppler 和 Carlito 字体，环境限制见
+[输出与 QA](references/docx-output.md)。安装或更新 Skill、agent 指令后，退出并重启 OpenCode。
 
-提供现有简历和目标岗位描述 (JD)，发送提示词：
+## 在 Agent 中使用
 
-```text
-使用 $monkey-resume 根据这个岗位定制我的简历，并生成经过校验的单页 DOCX。
-```
-
----
-
-## 核心特性
-
-- **零虚构生成**：仅从已验证事实写作；缺失的 JD 要求明确标记为缺口（Gap）。
-- **全链路可追溯**：每条简历要点均直接映射到对应的 Claim ID 与原始依据。
-- **精准岗位匹配**：自动将 JD 需求分类为直接匹配、可迁移或缺失能力。
-- **页面几何门禁**：物理排版校验，严格确保单页 A4 呈现，杜绝溢出。
-- **安全回滚机制**：QA 拒绝的候选文件存入 `rejected/`；可处理的历史记录或发布错误保留上一份合格 DOCX/PDF。
-
----
-
-## 5 步处理流程
+**只导入资料：**提供原始简历、工作笔记或候选人信息文档：
 
 ```text
-[1. 来源快照] ➔ [2. 事实账本] ➔ [3. JD 分析] ➔ [4. 规划与草拟] ➔ [5. 审计与发布]
+使用 $monkey-resume 将这份资料导入我的候选人缓存，暂不需要 JD 或生成简历。
 ```
 
-1. **来源快照**：将原始简历（`.pdf`, `.docx`, `.md`, `.txt`）转换为不可变快照。
-2. **事实账本**：将经历拆解为绑定实体的原子声明（Atomic Claims），支持跨 JD 复用。
-3. **JD 分析**：将岗位能力与事实匹配，仅在关键信息缺失时发起定向追问。
-4. **规划与草拟**：在 Projection Plan 中选择证据，生成符合招聘语境的精炼要点。
-5. **审计与发布**：执行事实完整性审计，渲染 DOCX 及同源 QA PDF，通过单页 A4 几何校验后发布。
+**定制并交付：**提供原始 JD 和候选人资料：
 
----
+```text
+使用 $monkey-resume 根据这个岗位定制简历。独立审查内容并检查实际单页 DOCX/PDF 后再发布，默认交付 DOCX，需要时附 PDF。
+```
 
-## 数据隔离架构
+1. 保存原始字节和有序文本块；模型通读来源，用准确原文摘录提出事实，再提交经校验的导入。
+2. 分析原始 JD，匹配完整当前缓存，包括更正、项目归属及重要的较早经历。
+3. 只维护一份 draft：`target`、`resume`、`evidence_links`、`omissions`；程序计算 manifest 和指纹，无额外写作计划。
+4. `prepare` 冻结草稿、产物哈希、输出名及审查模板。审查者先盲读 JD 与可见简历，再核对完整证据和遗漏；逐页检查实际 DOCX 预览及同源 PDF。
+5. `publish` 仅接受当前版本的通过审查与物理 QA。审查或渲染不完整时仅保留候选版本；可处理失败保留既有接受产物及历史。不自动填写 PASS，不用自审批准。
 
-个人数据与生成的 DOCX/PDF 完全保存在候选人工作目录。CLI 默认使用
-`~/Documents/MonkeyResume`；可通过 `--workspace` 指定其他位置：
+命令与契约见 [SKILL.md](SKILL.md)、[资料导入](references/source-ingestion.md)、
+[draft schema](references/resume-working-schema.md)、[审查协议](references/recruiter-review-protocol.md)。
+
+## 个人工作目录
+
+默认 `~/Documents/MonkeyResume`。同一候选人始终使用同一外部 `--workspace`，
+个人数据不写入本仓库。
 
 ```text
 USER_WORKSPACE/
-├── cache/
-│   ├── base-resume.json          # 不可变来源快照
-│   ├── candidate-evidence.json   # 跨 JD 候选人事实账本
-│   ├── jd-analysis.json          # 岗位需求匹配分析
-│   ├── resume-working.json       # 当前定制简历数据
-│   └── resume-changes.json       # 字段级修改变更记录
-└── resume_output/
-    ├── Candidate_Resume_Role.docx # 校验通过的可编辑 DOCX
-    └── rejected/                 # 未通过门禁的候选文件（自动隔离）
+├── cache/candidate-state.json   # 事实账本、Profile 和不可变来源注册表
+├── cache/sources/              # 原始字节及带位置的文本块
+├── cache/draft.json            # 模型草稿（示例位置）
+├── candidates/<uuid>/          # 冻结候选版本、DOCX/PDF、审查模板
+├── resume_output/              # 已接受的交付文件
+└── resume_history/index.html   # 已接受生成版本的离线目录
 ```
 
----
+文档重复导入是幂等的。候选人回答可用可选 `--event-id` 对重试去重；
+有来源依据的显式 `reactivate`/`supersedes` 更正保留历史。旧 schema 缓存被拒绝：
+有意选择新的外部目录，或另行授权迁移；当前未提供迁移 CLI。
 
-## 开发与测试
+即使只交付 DOCX，接受历史仍保留同源 PDF、审查及候选记录。已知公司、岗位、
+招聘链接写入 draft 的 `target`；见[历史维护](references/resume-generation-records.md)。
 
-运行完整测试套件：
+## 开发检查
 
 ```bash
 python3 -m pip install -r requirements-dev.txt
@@ -107,15 +76,6 @@ ruff check scripts templates tests
 python3 -m unittest discover -s tests -v
 ```
 
----
-
 ## 许可证
 
 [MIT](LICENSE)
-
-
-## DOCX-first output / 默认 DOCX
-
-默认交付可编辑 DOCX，保留 `--format pdf` 和 `--format both`。PDF 由同一份 DOCX 经 LibreOffice 转换，不维护两套排版。旧命令显式指定 `.pdf` 仍输出 PDF。需安装 LibreOffice、Poppler 和 Carlito 字体。
-
-Default output is editable DOCX. PDF is exported from the exact same document. See [output and QA guide](references/docx-output.md) for dependencies, compatibility, the pinned Apache-2.0 OpenAI public QA tool, and renderer/font limitations.

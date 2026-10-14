@@ -11,3 +11,11 @@ Candidates frequently provide factual details in natural, conversational languag
 ## Consequences
 - Reduces candidate cognitive load and accelerates subsequent tailoring iterations ("ask once, reuse everywhere").
 - Eliminates redundant clarification cycles while continuously enriching the central Evidence Ledger.
+
+## Superseded in issue #12
+
+[ADR 0005](0005-model-led-draft-and-review-gated-publication.md) replaces direct
+silent file writes with verbatim candidate-response source events and validated
+model import proposals. Reuse remains, but clarification is driven by important
+missing facts rather than a fixed quota. Event retry deduplication and explicit
+source-backed corrections preserve history.

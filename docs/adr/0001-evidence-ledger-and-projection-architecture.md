@@ -13,3 +13,11 @@ We decouple candidate data into three distinct architectural tiers:
 - The rendering template remains completely clean of ledger metadata.
 - Candidate evidence compounds and grows richer with each JD interaction without risking corruption of past applications.
 - Reordering sections or bullets in the presentation layer never breaks claim references.
+
+## Superseded in issue #12
+
+[ADR 0005](0005-model-led-draft-and-review-gated-publication.md) replaces these
+file contracts with atomic candidate state, immutable original source records
+and one model-authored draft with program-computed manifest. The separation of
+evidence from display remains; the historical decision above is not current
+runtime guidance.

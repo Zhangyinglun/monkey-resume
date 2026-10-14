@@ -3,17 +3,17 @@
 ## Mature components, one layout source
 
 The default deliverable is an editable `.docx`, produced by python-docx 1.2.0.
-`templates/docx_resume_template.py` is a small adapter from the existing evidence
-projection and design tokens to Word paragraphs, tab stops and borders. It does
+`templates/docx_resume_template.py` is a small adapter from the compiled display
+resume and design tokens to Word paragraphs, tab stops and borders. It does
 not implement pagination, a PDF writer, or a screenshot-based Word document.
 
 Every published PDF is exported from that exact DOCX by LibreOffice Writer.
 Even DOCX-only delivery requires LibreOffice: the exported QA PDF must
-pass the existing one-page A4, text, geometry and content gates before publishing.
-Factual audit and warning dispositions remain mandatory. Auto-fit changes layout
-only and now measures the DOCX-derived PDF, never the separate legacy template.
-The legacy ReportLab template remains importable for existing callers, but is
-not used by the publication CLI and is not guaranteed to match DOCX.
+pass measured one-page A4, text, bounds and readable-font QA before publishing.
+The compiler validates traceability, not semantic entailment. Complete independent
+content and actual visual review are required before acceptance; fixed section,
+keyword and whitespace preferences are advisory. Auto-fit changes layout only
+and measures the DOCX-derived PDF. There is no old-runtime compatibility contract.
 
 Install LibreOffice, Poppler and Carlito fonts in addition to requirements.txt.
 For Ubuntu/Debian: `apt-get install libreoffice-writer poppler-utils fonts-crosextra-carlito`.
@@ -22,14 +22,22 @@ network service receives resume content; conversion is local to the executor.
 
 ## CLI
 
-The existing factual audit arguments are unchanged. Given those arguments:
+```bash
+python3 "$MONKEY_RESUME_DIR/scripts/generate_final_resume.py" prepare \
+  --workspace "$USER_WORKSPACE" --draft "$DRAFT_FILE" \
+  --output-file target.docx --author-id "$AUTHOR_ID"
+# Complete the returned review template through actual independent review.
+python3 "$MONKEY_RESUME_DIR/scripts/generate_final_resume.py" publish \
+  --workspace "$USER_WORKSPACE" --candidate-id "$CANDIDATE_ID" \
+  --review "$REVIEW_FILE" --format docx
+```
 
-- No format/filename: `resume.docx` (new default).
-- `--output-file target.docx`: DOCX only.
-- `--format pdf`: `resume.pdf`.
-- `--output-file target.pdf`: PDF only (backward-compatible explicit filename).
-- `--format both --output-file target.docx`: `target.docx` and `target.pdf`.
-- A contradictory explicit format and suffix is rejected rather than silently renamed.
+`prepare` always attempts both artifacts and freezes the output filename (default
+`resume.docx`); a safe `.docx` or `.pdf` filename is accepted, not a path.
+`publish --format docx|pdf|both` controls delivery independently of that suffix.
+It defaults to DOCX and the frozen name's stem. Optional publish `--output-file`
+explicitly renames delivery without altering reviewed artifact bytes. There are
+no old manifest/Source Snapshot arguments or inferred PDF-only filename behavior.
 
 Without layout flags, DOCX generation uses the approved full-page sample's
 settings: Carlito, A4, 12.7 mm top/bottom margins and 15.24 mm left/right
@@ -46,15 +54,20 @@ layout immediately, including explicit overrides. Extra bottom whitespace is
 an advisory and cannot trigger replacement by legacy expansion presets. Failed
 first renders still use the existing bounded search and final publication gate.
 
-Both formats are generated in a staging directory. QA failures retain rejected
-DOCX/PDF candidates and preserve accepted files. Publication backs up only the
+Both formats are generated under `USER_WORKSPACE/candidates/<uuid>/`; preparation
+does not publish. The response reports `physical_qa`, `qa_passed`, `render_error`
+and `review_template_path`. CLI exit 0 means prepared physical QA passed, not
+accepted content; 2 means physical QA not ready and 1 reports rendering/input
+errors. Failed/incomplete candidates remain unpublished and accepted files stay
+unchanged. Publication backs up only the
 matching same-stem files (including a stale other-format counterpart), with a rollback journal if a filesystem move fails.
 It does not archive unrelated resumes. Conversion errors never publish an
 unchecked DOCX. There is no alternate-engine or DOCX-to-ODT fallback.
 
-Each successful generation also retains the same-source QA PDF in durable
-history, even for DOCX-only delivery. Use the printed `Historical PDF` path for
-QA and Recruiter Review; see `resume-generation-records.md` for storage and recovery.
+Each successful publication also retains the same-source QA PDF, review and
+candidate record in durable history, even for DOCX-only delivery. Review the
+candidate artifacts before publishing; the response's `historical_pdf` is the
+accepted fixed reference. See `resume-generation-records.md` for storage/recovery.
 Handled history failures preserve accepted outputs, and handled publication
 failures roll back both the requested output pair and the new history record.
 
@@ -68,7 +81,7 @@ DOCX → LibreOffice PDF → PNG inspection loop used here.
 Independent visual verification:
 
 ```
-python vendor/openai_doc/render_docx.py /absolute/path/target.docx --output_dir /absolute/path/docx-preview --dpi 144
+python3 "$MONKEY_RESUME_DIR/vendor/openai_doc/render_docx.py" /absolute/path/target.docx --output_dir /absolute/path/docx-preview --dpi 144
 pdftoppm -r 144 -png /absolute/path/target.pdf /absolute/path/pdf-preview
 ```
 
@@ -88,8 +101,8 @@ a reader applies different layout rules. Do not claim pixel equality in every
 reader or after edits. Preserve the PDF as the fixed visual reference.
 
 The design retains existing A4 dimensions, navy section rules, centered contact
-header, and the existing design-token sizes and spacing. The legacy ReportLab
-PDF is not a pixel-identical reference: typography engines differ.
+header, and the existing design-token sizes and spacing. A PDF from another
+typography engine is not a pixel-identical reference.
 
 ## Supported validation environment
 

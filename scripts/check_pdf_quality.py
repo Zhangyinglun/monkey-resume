@@ -120,6 +120,8 @@ def build_quality_report(
     layout_warnings: list[str],
     margin_thresholds: dict[str, float],
     geometry_findings: list[dict[str, Any]] | None = None,
+    bounds_findings: list[dict[str, Any]] | None = None,
+    min_font_pt: float | None = None,
 ) -> dict[str, Any]:
     checks: list[dict[str, Any]] = []
 
@@ -212,9 +214,7 @@ def build_quality_report(
         }
     )
 
-    contact_ok = contact.get("email", False) and (
-        contact.get("phone", False) or contact.get("linkedin", False)
-    )
+    contact_ok = any(contact.values())
     checks.append(
         {
             "name": "contact_info",
@@ -250,7 +250,33 @@ def build_quality_report(
         }
     )
 
-    _NON_CRITICAL_CHECKS = {"layout_warnings"}
+    checks.extend(
+        [
+            {
+                "name": "page_bounds",
+                "passed": not bounds_findings,
+                "detail": {"findings": bounds_findings or []},
+            },
+            {
+                "name": "font_readability",
+                "passed": min_font_pt is None or min_font_pt >= 8.5,
+                "detail": {
+                    "minimum_pt": min_font_pt,
+                    "threshold_pt": 8.5,
+                    "measured": min_font_pt is not None,
+                },
+            },
+        ]
+    )
+    # Relevance, missing optional contact/education and sparse tails are review
+    # inputs, not reasons to invent facts or remove valid content for a linter.
+    _NON_CRITICAL_CHECKS = {
+        "layout_warnings",
+        "text_geometry",
+        "keyword_coverage",
+        "contact_info",
+        "section_completeness",
+    }
     critical_pass = all(c["passed"] for c in checks if c["name"] not in _NON_CRITICAL_CHECKS)
     return {"verdict": "PASS" if critical_pass else "NEED-ADJUSTMENT", "checks": checks}
 
@@ -446,6 +472,21 @@ def check_pdf_file(
             for finding in page["sparse_trailing_lines"]
         ]
 
+        bounds_findings: list[dict[str, Any]] = []
+        sizes: list[float] = []
+        for number, page in enumerate(pdf.pages, 1):
+            for character in page.chars:
+                if not str(character.get("text", "")).strip():
+                    continue
+                sizes.append(float(character["size"]))
+                if (
+                    float(character["x0"]) < -0.5
+                    or float(character["x1"]) > float(page.width) + 0.5
+                    or float(character["top"]) < -0.5
+                    or float(character["bottom"]) > float(page.height) + 0.5
+                ):
+                    bounds_findings.append({"page": number, "text": character["text"]})
+
         return build_quality_report(
             page_count=len(pdf.pages),
             width_mm=points_to_mm(first_page.width),
@@ -467,6 +508,8 @@ def check_pdf_file(
             layout_warnings=layout_warnings,
             margin_thresholds=thresholds,
             geometry_findings=geometry_findings,
+            bounds_findings=bounds_findings,
+            min_font_pt=min(sizes) if sizes else None,
         )
 
 

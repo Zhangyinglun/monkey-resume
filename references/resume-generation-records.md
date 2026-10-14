@@ -1,29 +1,43 @@
 # Resume Generation Records
 
-Every successful `generate_final_resume.py` generation automatically copies its same-source QA PDF into an independent Resume Generation Record, including default DOCX-only delivery. History stores the fixed PDF reference, not an editable DOCX archive. Repeated generations for the same role remain separate. Failed factual/content/PDF checks or handled history/publication errors create no record. Host visual inspection remains a separate required workflow step; the directory certifies automated gates, not a visual verdict or a submission.
+Only successful `generate_final_resume.py publish` creates accepted history.
+`prepare` leaves frozen candidates, not records of acceptance. Each publication
+retains its own same-source PDF, bound review and candidate record, including
+DOCX-only delivery. Repeated generations for a role remain separate; this is not
+application or interview tracking. A stored review is host provenance, not proof
+of semantic accuracy or reviewer independence.
 
-## Generate and find
+## Publish and find
+
+Put known metadata in draft `target.company`, `target.role`, `target.job_url`.
+Unknown values can be omitted; metadata describes the target, not employment.
+After preparing and completing independent content/visual review:
 
 ```bash
-python3 "$MONKEY_RESUME_DIR/scripts/generate_final_resume.py" \
-  --workspace "$USER_WORKSPACE" \
-  --input-json "$USER_WORKSPACE/cache/resume-working.json" \
-  --output-file "target_resume.docx" \
-  --company "Northstar Systems" --job-title "Backend Engineer" \
-  --job-url "https://example.com/jobs/backend" --auto-fit
+python3 "$MONKEY_RESUME_DIR/scripts/generate_final_resume.py" publish \
+  --workspace "$USER_WORKSPACE" --candidate-id "$CANDIDATE_ID" \
+  --review "$REVIEW_FILE" --format docx
 ```
 
-The existing mandatory evidence, Source Snapshot, and manifest inputs default to files beside the input JSON. Omit unknown metadata flags; company and role appear as 未填写, and an absent URL never blocks generation. Metadata describes the target, not candidate employment history.
+Use `--format both` for matching current-output DOCX/PDF. The frozen prepare
+filename supplies the default output stem; optional publish `--output-file`
+explicitly renames delivery. Outputs are under `USER_WORKSPACE/resume_output`;
+no legacy external `--output-dir` or target-metadata flags exist.
 
-Open `USER_WORKSPACE/resume_history/index.html` in your browser. Use browser Find to locate a company or role. Each row includes its record ID, UTC generation time and a relative link to its historical PDF. No server, network assets, or cloud upload is needed. Job links open the external posting when clicked.
+Open `$USER_WORKSPACE/resume_history/index.html`. Each row includes record ID,
+company, role, optional posting URL, UTC generation time and a relative historical
+PDF link. Missing company/role appear as 未填写. No server or cloud upload is
+needed; clicking a job link opens the external posting.
 
-The generator prints the exact `Historical PDF` path. Use that persistent PDF for quality reporting, visual QA and Recruiter Review even when no PDF was requested in `resume_output`. Request `--format both` during generation when the user also needs a matching current-output PDF. Reuse the same PDF path in review snapshots and report commands.
+The publish JSON returns `outputs`, `historical_pdf`, `history_index` and physical
+QA. The historical PDF is independent of later output backups. Review occurs
+before publication using candidate paths, not an already accepted historical PDF.
+Always use the same external `--workspace`; default is `~/Documents/MonkeyResume`,
+never inferred from filenames. Repository workspaces are rejected.
 
-Always pass the same external `--workspace` used for evidence/cache. If omitted, it defaults to `~/Documents/MonkeyResume`; it is never inferred from input or output names. Output defaults to `USER_WORKSPACE/resume_output`. Explicit external `--output-dir` remains supported for legacy commands, even outside the workspace, but history always belongs to the resolved workspace. Skill-managed workflows keep both in the same workspace. Repository output and history are rejected.
+## Correct a posting URL
 
-## Fill or correct a posting URL
-
-Copy the record ID from the directory, then run:
+Copy the record ID from the directory:
 
 ```bash
 python3 "$MONKEY_RESUME_DIR/scripts/resume_history_manager.py" set-url \
@@ -32,21 +46,34 @@ python3 "$MONKEY_RESUME_DIR/scripts/resume_history_manager.py" set-url \
   --job-url "https://example.com/jobs/backend"
 ```
 
-Use `--job-url ""` to clear it. Only absolute HTTP(S) links without credentials or whitespace are accepted. Updating a link rebuilds the directory and leaves the original PDF, company, role, and generation time unchanged.
+`--job-url ""` clears it. Only absolute HTTP(S) links without credentials or
+whitespace are accepted. This rebuilds the directory without changing the PDF,
+company, role or generation time; it does not rewrite the frozen candidate review.
 
 ## Storage and recovery
 
-- `resume_history/generation-<uuid>/record.json`: `record_id`, `company`, `job_title`, `job_url`, `generated_at` (UTC ISO 8601).
-- `resume_history/generation-<uuid>/resume.pdf`: independent read-only PDF copy, never rewritten by generation or URL updates.
-- `resume_history/index.html`: generated offline directory; all metadata is escaped.
+- `resume_history/generation-<uuid>/record.json`: record ID, target metadata and
+  UTC `generated_at`.
+- `resume_history/generation-<uuid>/resume.pdf`: independent read-only PDF copy.
+- `resume_history/generation-<uuid>/review.json`: supplied bound review, including
+  retained blind-reading/evidence detail when provided.
+- `resume_history/generation-<uuid>/candidate-record.json`: frozen candidate bindings.
+- `resume_history/index.html`: escaped offline directory.
 
-History is outside cache cleanup and unaffected by same-stem DOCX/PDF publication backups. Back up the entire `resume_history` directory to preserve relative links. Do not edit or replace historical PDFs; filesystem owners can still override read-only permissions.
+Back up the entire `resume_history` directory to preserve relative links. History
+is outside cache cleanup and same-stem output backups. Filesystem owners can
+override read-only permissions; history is not a tamper-proof archive.
 
-Rebuild a missing/stale directory from existing records (this does not import old PDFs):
+Rebuild a missing/stale directory from existing records (no old-PDF import):
 
 ```bash
 python3 "$MONKEY_RESUME_DIR/scripts/resume_history_manager.py" rebuild \
   --workspace "$USER_WORKSPACE"
 ```
 
-History writes use a fail-fast `.lock` directory. After an interrupted process, stop all writers before removing `resume_history/.lock` and rebuilding the directory. Handled write/publication errors roll back the new record; abrupt termination or disk failure can require manual recovery. There is no old-PDF import, application status, or interview tracking.
+History uses a fail-fast `.lock` directory. After interruption, stop all writers
+before removing `resume_history/.lock` and rebuilding. Handled history/publication
+failures roll back the new record and preserve previously accepted outputs and
+records. Abrupt termination or disk failure may need manual recovery. Legacy
+candidate caches require a new workspace or separately authorized migration;
+neither this history CLI nor the new workflow ships a cache migration command.

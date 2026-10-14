@@ -11,3 +11,11 @@ Previous content QA evaluated line-fill and wrap issues using character length h
 ## Consequences
 - Accurate detection of visual typographic defects in rendered PDFs without spurious character-count warnings.
 - Higher quality bullet phrasing that prioritizes substantive engineering achievements over forced numerical metrics.
+
+## Updated in issue #12
+
+[ADR 0005](0005-model-led-draft-and-review-gated-publication.md) retains measured
+PDF geometry and the rejection of forced metric quotas. It supersedes any
+mandatory natural-language action-verb/structure scoring: style, orphan-word and
+whitespace preferences are advisory. Publication requires actual one-page A4,
+readable-font/bounds QA plus independent content and visual review.

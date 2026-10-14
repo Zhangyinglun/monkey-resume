@@ -286,9 +286,7 @@ def check_pdf_geometry(pdf_path: Path) -> dict[str, Any]:
                 extract_page_lines(page),
                 page_width=float(page.width),
             )
-            page_reports.append(
-                {"page": page_number, "sparse_trailing_lines": findings}
-            )
+            page_reports.append({"page": page_number, "sparse_trailing_lines": findings})
     total = sum(len(page["sparse_trailing_lines"]) for page in page_reports)
     return {
         "verdict": "PASS" if total == 0 else "NEED-ADJUSTMENT",
@@ -301,7 +299,6 @@ def build_content_fit_feedback(
     pdf_path: Path,
     resume: dict[str, Any],
     *,
-    plan_revision: int,
     preferred_max_bottom_mm: float = 8.0,
 ) -> dict[str, Any]:
     """Generate real PDF content fit feedback against the preferred layout."""
@@ -314,25 +311,19 @@ def build_content_fit_feedback(
         first_page = pdf.pages[0]
         margins = estimate_page_margins_mm(first_page)
         section_geometry = _section_geometry(page_lines[0], resume)
-        sparse = detect_sparse_bullet_endings(
-            page_lines[0], page_width=float(first_page.width)
-        )
+        sparse = detect_sparse_bullet_endings(page_lines[0], page_width=float(first_page.width))
 
     skills_lines = int(section_geometry.get("skills", {}).get("line_count", 0))
     issues: list[str] = []
-    if skills_lines and not (2 <= skills_lines <= 4):
-        issues.append("skills_rendered_line_budget")
     if page_count > 1:
         verdict = "overflow"
     elif margins is not None and margins["bottom"] > preferred_max_bottom_mm:
         verdict = "underfill"
-    elif issues:
-        verdict = "revision_required"
     else:
         verdict = "fit"
     return {
-        "schema_version": 1,
-        "plan_revision": plan_revision,
+        "schema_version": 2,
+        "skills_line_count": skills_lines,
         "verdict": verdict,
         "page_count": page_count,
         "bottom_whitespace_mm": None if margins is None else round(margins["bottom"], 2),
@@ -350,12 +341,6 @@ def main() -> int:
         type=str,
         default=None,
         help="Path to resume JSON to evaluate content fit feedback",
-    )
-    parser.add_argument(
-        "--plan-revision",
-        type=int,
-        default=1,
-        help="Plan revision number (default: 1)",
     )
     parser.add_argument(
         "--preferred-max-bottom-mm",
@@ -391,7 +376,6 @@ def main() -> int:
             feedback = build_content_fit_feedback(
                 pdf_path,
                 resume,
-                plan_revision=args.plan_revision,
                 preferred_max_bottom_mm=args.preferred_max_bottom_mm,
             )
         except Exception as exc:  # noqa: BLE001 - stable failure exit
@@ -419,7 +403,7 @@ def main() -> int:
             if feedback["sparse_trailing_bullets"]:
                 print(f"  Sparse trailing bullets: {len(feedback['sparse_trailing_bullets'])}")
 
-        return 0 if feedback["verdict"] == "fit" else 2
+        return 2 if feedback["verdict"] == "overflow" else 0
 
     try:
         report = check_pdf_geometry(pdf_path)
@@ -441,4 +425,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

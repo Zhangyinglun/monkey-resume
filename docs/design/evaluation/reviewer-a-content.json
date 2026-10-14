@@ -1,0 +1,52 @@
+{
+  "reviewer": "A", "phase": "content",
+  "drafts": {
+    "draft-a": {
+      "content_verdict": "pass", "format_status": "unavailable", "publication_ready": false,
+      "blocking_findings": [],
+      "suggestions": [
+        {"category": "readability", "location": "experience[0].bullets[0]", "quote": "90% of supported-scope incidents", "source_claim_ids": ["N1"], "reason": "This accurately preserves the source's limitation. The incident categories remain unspecified in the evidence, so the blind readability concern is not a factual defect.", "suggested_correction": "Retain the scope qualifier; clarify categories only if the candidate supplies additional evidence."},
+        {"category": "focus", "location": "experience[0].bullets[4]", "quote": "Used Copilot and Claude Code for tests, refactoring and security fixes, with human review and CI validation.", "source_claim_ids": ["N5", "N6"], "reason": "The assistant contribution and engineering-practice statement are both supported, but combining them makes the bullet less focused.", "suggested_correction": "Optionally shorten or separate the engineering-practice clause while preserving the assistant's ownership and impact."}
+      ],
+      "omission_assessment": [{"claim_ids": ["H3"], "writer_reason_accepted": true, "reason": "Advertising UI work adds little to this infrastructure application. The draft already represents the strongest relevant development, reliability, telemetry, leadership and tooling evidence.", "severity": "acceptable"}]
+    },
+    "draft-b": {
+      "content_verdict": "revise", "format_status": "unavailable", "publication_ready": false,
+      "blocking_findings": [
+        {"category": "superseded_candidate_information", "location": "name", "quote": "Alex", "source_claim_ids": ["P1", "P2"], "reason": "P2 explicitly supersedes the earlier display name and instructs use of Alex Chen. This is a candidate correction, not an inferred legal-name requirement.", "suggested_correction": "Replace the name with Alex Chen."},
+        {"category": "important_omission", "location": "experience[0].bullets", "quote": "Integrated Kusto/KQL logs and Copilot diagnostics, reducing fault-localization time by 80%; participated in on-call and production readiness reviews.", "source_claim_ids": ["N3", "N4", "G3"], "reason": "The section includes N3 diagnostic integration but entirely omits N4's distinct production telemetry, alerting and five-person technical leadership. Calling N4 unrelated AI/product detail contradicts the evidence. This removes a substantial, directly relevant contribution, not merely an atomic detail or isolated preferred keyword.", "suggested_correction": "Merge the two queue bullets to reduce repetition and add a concise cooling-project bullet covering technical leadership, telemetry/risk triggers and diagnostic workflows. If retaining the outcome, use approximately 10% fewer GPU-throttling incidents versus the historical baseline and preserve human remediation decisions."}
+      ],
+      "suggestions": [
+        {"category": "readability", "location": "experience[0].bullets[0]", "quote": "Developed Azure Event Hubs-based PulseBus infrastructure, improving queue architecture and automating blocked-queue mitigation.", "source_claim_ids": ["N1"], "reason": "The statement is supported, but the system's purpose is clearer in the evidence than in the draft.", "suggested_correction": "Describe PulseBus as an Azure Event Hubs-based message queue backend carrying authentication events; do not invent architectural changes."},
+        {"category": "optional_relevant_experience", "location": "experience[0].bullets", "quote": "", "source_claim_ids": ["N5"], "reason": "The authentication-support assistant demonstrates relevant internal-tool delivery and Python ownership, although existing C# and Go work already satisfies the programming requirement.", "suggested_correction": "Consider a short assistant bullet if space permits after restoring N4, retaining the 85% manual-handling reduction and ingestion/retrieval/evaluation/deployment ownership."}
+      ],
+      "omission_assessment": [
+        {"claim_ids": ["N4"], "writer_reason_accepted": false, "reason": "Cooling observability, telemetry pipelines, actionable risk triggers and technical leadership directly address this JD. Omitting the entire contribution on an unrelatedness rationale materially weakens representation of the candidate's relevant experience.", "severity": "blocking"},
+        {"claim_ids": ["N5"], "writer_reason_accepted": false, "reason": "Internal engineering tooling is explicitly helpful for the role, so this is not unrelated. Nevertheless, omitting this secondary project can be reasonable because programming and automation are already demonstrated.", "severity": "suggestion"},
+        {"claim_ids": ["N6"], "writer_reason_accepted": false, "reason": "Testing, security fixes, human review and CI are engineering practices, not simply unrelated product detail. Their omission is still acceptable because they add less distinctive role evidence than the operational projects.", "severity": "acceptable"},
+        {"claim_ids": ["H3"], "writer_reason_accepted": true, "reason": "Advertising UI implementation is secondary to this infrastructure role.", "severity": "acceptable"}
+      ]
+    },
+    "draft-c": {
+      "content_verdict": "revise", "format_status": "unavailable", "publication_ready": false,
+      "blocking_findings": [
+        {"category": "contradicted_capabilities", "location": "skills[1].items", "quote": "[\"Kubernetes\", \"AKS\", \"Terraform\", \"Helm\", \"Kafka broker administration\"]", "source_claim_ids": ["G1", "H1", "H2"], "reason": "The candidate explicitly reported no Terraform, Helm or Kafka broker-administration experience. Application-level Kafka integration and Kubernetes deployments do not establish those capabilities.", "suggested_correction": "Remove Terraform, Helm and Kafka broker administration. Retain supported Kubernetes/AKS experience and describe Kafka as application integration if included."},
+        {"category": "metric_misattribution", "location": "experience[0].bullets[0]", "quote": "Developed PulseBus, a message queue backend carrying authentication events, and operated it with a 99.99% uptime SLA.", "source_claim_ids": ["N1", "N2"], "reason": "The 99.99% SLA belongs to the overall authentication service. The evidence supplies neither a PulseBus-specific SLA nor measured PulseBus uptime.", "suggested_correction": "Remove the SLA from this bullet. Describe N1's restart-based queue mitigation instead, and attach the overall authentication-service SLA to the authentication bullet if retained."},
+        {"category": "metric_scope_change", "location": "experience[0].bullets[2]", "quote": "reducing end-to-end incident recovery time by 80%", "source_claim_ids": ["N3"], "reason": "N3 measures fault-localization time, explicitly not end-to-end incident recovery time.", "suggested_correction": "Replace with reducing fault-localization time by 80%."},
+        {"category": "metric_and_responsibility_misattribution", "location": "experience[0].bullets[3]", "quote": "Technically led a five-person cooling-diagnostics team; its autonomous remediation resolved 90% of GPU-throttling incidents within 30 minutes.", "source_claim_ids": ["N1", "N4"], "reason": "The 90%/30-minute result belongs to supported-scope queue mitigation, not cooling. The cooling system monitored, diagnosed and reported; engineers made remediation decisions. Its supported outcome is approximately 10% lower GPU-throttling incident frequency versus the historical baseline.", "suggested_correction": "Retain the five-person technical leadership, describe cooling telemetry and diagnostic workflows, and use the approximately 10% historical-baseline outcome without claiming autonomous remediation."},
+        {"category": "ownership_overstatement", "location": "experience[0].bullets[4]", "quote": "Built and fine-tuned a Python/RAG authentication-support assistant", "source_claim_ids": ["N5", "G2"], "reason": "The candidate owned ingestion, retrieval, model evaluation and deployment; a colleague performed fine-tuning. The evidence resolves the blind ambiguity as an incorrect ownership claim.", "suggested_correction": "Remove fine-tuned and describe the candidate's ingestion, retrieval, evaluation and deployment ownership. Retain the supported 85% manual-handling reduction."}
+      ],
+      "suggestions": [],
+      "omission_assessment": [{"claim_ids": ["H3"], "writer_reason_accepted": true, "reason": "Advertising UI implementation is secondary to this infrastructure role. Its omission does not cause the draft's factual problems.", "severity": "acceptable"}]
+    },
+    "draft-d": {
+      "content_verdict": "pass", "format_status": "unavailable", "publication_ready": false,
+      "blocking_findings": [],
+      "suggestions": [{"category": "metric_wording_precision", "location": "experience[0].bullets[0]", "quote": "automated restart-based mitigation resolved 90% of supported-scope incidents within 30 minutes of detection", "source_claim_ids": ["N1"], "reason": "N1 measures automatic mitigation and excludes subsequent human handling. The draft retains the automation, scope and detection-time boundaries, but resolved is less precise than the source wording; this does not establish a separate factual error.", "suggested_correction": "Use automated restart-based recovery mitigated 90% of supported-scope incidents within 30 minutes of detection."}],
+      "omission_assessment": [
+        {"claim_ids": ["N5"], "writer_reason_accepted": true, "reason": "The assistant is relevant internal-tool experience, but prioritizing queue reliability and cooling telemetry/leadership is defensible. C# and Go already demonstrate the required programming capability, and automation remains visible. Actual page fit is unverified.", "severity": "acceptable"},
+        {"claim_ids": ["N6", "H3"], "writer_reason_accepted": true, "reason": "General AI-assisted engineering practice and advertising UI are secondary to the retained infrastructure contributions. Omitting them is reasonable compression, not a claim that the candidate lacks those experiences.", "severity": "acceptable"}
+      ]
+    }
+  }
+}

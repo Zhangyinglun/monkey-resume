@@ -114,13 +114,62 @@ class PdfGeometryTests(unittest.TestCase):
             "education": [{"school": "Example", "degree": "B.S.", "dates": "2020"}],
         }
         lines = [
-            {"text": "SUMMARY", "top": 20.0, "bottom": 30.0, "x0": 50.0, "x1": 120.0, "words": ["SUMMARY"]},
-            {"text": "Backend engineer.", "top": 32.0, "bottom": 42.0, "x0": 50.0, "x1": 180.0, "words": ["Backend", "engineer."]},
-            {"text": "PROFESSIONAL EXPERIENCE", "top": 50.0, "bottom": 60.0, "x0": 50.0, "x1": 240.0, "words": ["PROFESSIONAL", "EXPERIENCE"]},
-            {"text": "Example Corp", "top": 62.0, "bottom": 72.0, "x0": 50.0, "x1": 130.0, "words": ["Example", "Corp"]},
-            {"text": "• Built a Python service.", "top": 74.0, "bottom": 84.0, "x0": 55.0, "x1": 220.0, "words": ["•", "Built", "a", "Python", "service."]},
-            {"text": "TECHNICAL SKILLS", "top": 90.0, "bottom": 100.0, "x0": 50.0, "x1": 180.0, "words": ["TECHNICAL", "SKILLS"]},
-            {"text": "Languages: Python, Go", "top": 102.0, "bottom": 112.0, "x0": 50.0, "x1": 210.0, "words": ["Languages:", "Python,", "Go"]},
+            {
+                "text": "SUMMARY",
+                "top": 20.0,
+                "bottom": 30.0,
+                "x0": 50.0,
+                "x1": 120.0,
+                "words": ["SUMMARY"],
+            },
+            {
+                "text": "Backend engineer.",
+                "top": 32.0,
+                "bottom": 42.0,
+                "x0": 50.0,
+                "x1": 180.0,
+                "words": ["Backend", "engineer."],
+            },
+            {
+                "text": "PROFESSIONAL EXPERIENCE",
+                "top": 50.0,
+                "bottom": 60.0,
+                "x0": 50.0,
+                "x1": 240.0,
+                "words": ["PROFESSIONAL", "EXPERIENCE"],
+            },
+            {
+                "text": "Example Corp",
+                "top": 62.0,
+                "bottom": 72.0,
+                "x0": 50.0,
+                "x1": 130.0,
+                "words": ["Example", "Corp"],
+            },
+            {
+                "text": "• Built a Python service.",
+                "top": 74.0,
+                "bottom": 84.0,
+                "x0": 55.0,
+                "x1": 220.0,
+                "words": ["•", "Built", "a", "Python", "service."],
+            },
+            {
+                "text": "TECHNICAL SKILLS",
+                "top": 90.0,
+                "bottom": 100.0,
+                "x0": 50.0,
+                "x1": 180.0,
+                "words": ["TECHNICAL", "SKILLS"],
+            },
+            {
+                "text": "Languages: Python, Go",
+                "top": 102.0,
+                "bottom": 112.0,
+                "x0": 50.0,
+                "x1": 210.0,
+                "words": ["Languages:", "Python,", "Go"],
+            },
         ]
         geometry = _section_geometry(lines, resume)
         self.assertEqual(geometry["summary"]["line_count"], 1)
@@ -149,11 +198,46 @@ class PdfGeometryTests(unittest.TestCase):
             ],
         }
         lines = [
-            {"text": "EXPERIENCE", "top": 40.0, "bottom": 50.0, "x0": 50.0, "x1": 150.0, "words": ["EXPERIENCE"]},
-            {"text": "Acme Corp | Senior Engineer 2022 - Present", "top": 55.0, "bottom": 65.0, "x0": 50.0, "x1": 350.0, "words": ["Acme", "Corp"]},
-            {"text": "• Led distributed team.", "top": 67.0, "bottom": 77.0, "x0": 55.0, "x1": 250.0, "words": ["•", "Led"]},
-            {"text": "Acme Corp | Software Engineer 2020 - 2022", "top": 85.0, "bottom": 95.0, "x0": 50.0, "x1": 350.0, "words": ["Acme", "Corp"]},
-            {"text": "• Built Python microservices.", "top": 97.0, "bottom": 107.0, "x0": 55.0, "x1": 270.0, "words": ["•", "Built"]},
+            {
+                "text": "EXPERIENCE",
+                "top": 40.0,
+                "bottom": 50.0,
+                "x0": 50.0,
+                "x1": 150.0,
+                "words": ["EXPERIENCE"],
+            },
+            {
+                "text": "Acme Corp | Senior Engineer 2022 - Present",
+                "top": 55.0,
+                "bottom": 65.0,
+                "x0": 50.0,
+                "x1": 350.0,
+                "words": ["Acme", "Corp"],
+            },
+            {
+                "text": "• Led distributed team.",
+                "top": 67.0,
+                "bottom": 77.0,
+                "x0": 55.0,
+                "x1": 250.0,
+                "words": ["•", "Led"],
+            },
+            {
+                "text": "Acme Corp | Software Engineer 2020 - 2022",
+                "top": 85.0,
+                "bottom": 95.0,
+                "x0": 50.0,
+                "x1": 350.0,
+                "words": ["Acme", "Corp"],
+            },
+            {
+                "text": "• Built Python microservices.",
+                "top": 97.0,
+                "bottom": 107.0,
+                "x0": 55.0,
+                "x1": 270.0,
+                "words": ["•", "Built"],
+            },
         ]
         geometry = _section_geometry(lines, resume)
         self.assertEqual(geometry["experience[0]"]["line_count"], 2)
@@ -173,9 +257,30 @@ class PdfGeometryTests(unittest.TestCase):
             ],
         }
         lines = [
-            {"text": "WORK EXPERIENCE", "top": 40.0, "bottom": 50.0, "x0": 50.0, "x1": 180.0, "words": ["WORK", "EXPERIENCE"]},
-            {"text": "Mismatched Header Line", "top": 55.0, "bottom": 65.0, "x0": 50.0, "x1": 250.0, "words": ["Mismatched"]},
-            {"text": "• Built services.", "top": 67.0, "bottom": 77.0, "x0": 55.0, "x1": 200.0, "words": ["•", "Built"]},
+            {
+                "text": "WORK EXPERIENCE",
+                "top": 40.0,
+                "bottom": 50.0,
+                "x0": 50.0,
+                "x1": 180.0,
+                "words": ["WORK", "EXPERIENCE"],
+            },
+            {
+                "text": "Mismatched Header Line",
+                "top": 55.0,
+                "bottom": 65.0,
+                "x0": 50.0,
+                "x1": 250.0,
+                "words": ["Mismatched"],
+            },
+            {
+                "text": "• Built services.",
+                "top": 67.0,
+                "bottom": 77.0,
+                "x0": 55.0,
+                "x1": 200.0,
+                "words": ["•", "Built"],
+            },
         ]
         geometry = _section_geometry(lines, resume)
         self.assertIn("experience", geometry)
@@ -225,9 +330,7 @@ class PdfGeometryTests(unittest.TestCase):
             {"text": "L: Go", "top": 85.0, "bottom": 95.0, "x0": 50.0, "x1": 100.0},
             {"text": "L2", "top": 98.0, "bottom": 108.0, "x0": 50.0, "x1": 100.0},
         ]
-        p2_words = [
-            {"text": "Overflow", "top": 50.0, "bottom": 60.0, "x0": 50.0, "x1": 100.0}
-        ]
+        p2_words = [{"text": "Overflow", "top": 50.0, "bottom": 60.0, "x0": 50.0, "x1": 100.0}]
         page1 = self._make_mock_page(words=p1_words)
         page2 = self._make_mock_page(words=p2_words)
 
@@ -239,15 +342,16 @@ class PdfGeometryTests(unittest.TestCase):
             feedback = build_content_fit_feedback(
                 Path("/fake/resume.pdf"),
                 resume,
-                plan_revision=1,
             )
 
-        self.assertEqual(feedback["schema_version"], 1)
-        self.assertEqual(feedback["plan_revision"], 1)
+        self.assertEqual(feedback["schema_version"], 2)
+        self.assertNotIn("plan_revision", feedback)
         self.assertEqual(feedback["verdict"], "overflow")
         self.assertEqual(feedback["page_count"], 2)
 
-    def test_build_content_fit_feedback_underfill_when_bottom_whitespace_exceeds_budget(self) -> None:
+    def test_build_content_fit_feedback_underfill_when_bottom_whitespace_exceeds_budget(
+        self,
+    ) -> None:
         resume = {
             "name": "Alex Chen",
             "contact": "alex@example.com",
@@ -276,15 +380,13 @@ class PdfGeometryTests(unittest.TestCase):
             feedback = build_content_fit_feedback(
                 Path("/fake/resume.pdf"),
                 resume,
-                plan_revision=2,
                 preferred_max_bottom_mm=8.0,
             )
 
         self.assertEqual(feedback["verdict"], "underfill")
-        self.assertEqual(feedback["plan_revision"], 2)
         self.assertGreater(feedback["bottom_whitespace_mm"], 8.0)
 
-    def test_build_content_fit_feedback_revision_required_for_skills_budget(self) -> None:
+    def test_build_content_fit_feedback_does_not_impose_skills_budget(self) -> None:
         resume = {
             "name": "Alex Chen",
             "contact": "alex@example.com",
@@ -321,11 +423,11 @@ class PdfGeometryTests(unittest.TestCase):
             feedback = build_content_fit_feedback(
                 Path("/fake/resume.pdf"),
                 resume,
-                plan_revision=1,
             )
 
-        self.assertEqual(feedback["verdict"], "revision_required")
-        self.assertIn("skills_rendered_line_budget", feedback["issues"])
+        self.assertEqual(feedback["verdict"], "fit")
+        self.assertEqual(feedback["issues"], [])
+        self.assertEqual(feedback["skills_line_count"], 6)  # Five groups plus the heading.
 
     def test_build_content_fit_feedback_fit_verdict_and_sparse_bullets(self) -> None:
         resume = {
@@ -369,7 +471,6 @@ class PdfGeometryTests(unittest.TestCase):
             feedback = build_content_fit_feedback(
                 Path("/fake/resume.pdf"),
                 resume,
-                plan_revision=1,
             )
 
         self.assertEqual(feedback["verdict"], "fit")
@@ -377,7 +478,7 @@ class PdfGeometryTests(unittest.TestCase):
         self.assertEqual(len(feedback["sparse_trailing_bullets"]), 1)
         self.assertIn("safely", feedback["sparse_trailing_bullets"][0]["text"])
 
-    def test_cli_feedback_output_and_plan_revision(self) -> None:
+    def test_cli_feedback_output_uses_measured_geometry_without_plan_revision(self) -> None:
         resume = {
             "name": "Alex Chen",
             "contact": "alex@example.com",
@@ -395,8 +496,7 @@ class PdfGeometryTests(unittest.TestCase):
             feedback_path = temp_path / "feedback.json"
 
             mock_feedback = {
-                "schema_version": 1,
-                "plan_revision": 3,
+                "schema_version": 2,
                 "verdict": "fit",
                 "page_count": 1,
                 "bottom_whitespace_mm": 5.5,
@@ -414,8 +514,6 @@ class PdfGeometryTests(unittest.TestCase):
                     str(pdf_path),
                     "--resume",
                     str(resume_path),
-                    "--plan-revision",
-                    "3",
                     "--feedback-output",
                     str(feedback_path),
                     "--json",
@@ -427,10 +525,9 @@ class PdfGeometryTests(unittest.TestCase):
                 self.assertEqual(result, 0)
                 self.assertTrue(feedback_path.exists())
                 saved = json.loads(feedback_path.read_text(encoding="utf-8"))
-                self.assertEqual(saved["plan_revision"], 3)
+                self.assertEqual(saved["schema_version"], 2)
                 self.assertEqual(saved["verdict"], "fit")
                 self.assertIn('"verdict": "fit"', stdout.getvalue())
-
 
     def test_section_geometry_other_sections(self) -> None:
         resume = {
@@ -442,15 +539,78 @@ class PdfGeometryTests(unittest.TestCase):
             "education": [{"school": "University", "degree": "B.S."}],
         }
         lines = [
-            {"text": "PROJECTS", "top": 20.0, "bottom": 30.0, "x0": 50.0, "x1": 120.0, "words": ["PROJECTS"]},
-            {"text": "Project Alpha | Tech", "top": 35.0, "bottom": 45.0, "x0": 50.0, "x1": 200.0, "words": ["Project"]},
-            {"text": "• Built a thing.", "top": 48.0, "bottom": 58.0, "x0": 55.0, "x1": 180.0, "words": ["•", "Built"]},
-            {"text": "AWARDS", "top": 70.0, "bottom": 80.0, "x0": 50.0, "x1": 120.0, "words": ["AWARDS"]},
-            {"text": "Best Engineer - Org", "top": 85.0, "bottom": 95.0, "x0": 50.0, "x1": 200.0, "words": ["Best"]},
-            {"text": "CERTIFICATIONS", "top": 110.0, "bottom": 120.0, "x0": 50.0, "x1": 150.0, "words": ["CERTIFICATIONS"]},
-            {"text": "AWS Pro - Amazon", "top": 125.0, "bottom": 135.0, "x0": 50.0, "x1": 200.0, "words": ["AWS"]},
-            {"text": "EDUCATION", "top": 150.0, "bottom": 160.0, "x0": 50.0, "x1": 130.0, "words": ["EDUCATION"]},
-            {"text": "University 2020", "top": 165.0, "bottom": 175.0, "x0": 50.0, "x1": 200.0, "words": ["University"]},
+            {
+                "text": "PROJECTS",
+                "top": 20.0,
+                "bottom": 30.0,
+                "x0": 50.0,
+                "x1": 120.0,
+                "words": ["PROJECTS"],
+            },
+            {
+                "text": "Project Alpha | Tech",
+                "top": 35.0,
+                "bottom": 45.0,
+                "x0": 50.0,
+                "x1": 200.0,
+                "words": ["Project"],
+            },
+            {
+                "text": "• Built a thing.",
+                "top": 48.0,
+                "bottom": 58.0,
+                "x0": 55.0,
+                "x1": 180.0,
+                "words": ["•", "Built"],
+            },
+            {
+                "text": "AWARDS",
+                "top": 70.0,
+                "bottom": 80.0,
+                "x0": 50.0,
+                "x1": 120.0,
+                "words": ["AWARDS"],
+            },
+            {
+                "text": "Best Engineer - Org",
+                "top": 85.0,
+                "bottom": 95.0,
+                "x0": 50.0,
+                "x1": 200.0,
+                "words": ["Best"],
+            },
+            {
+                "text": "CERTIFICATIONS",
+                "top": 110.0,
+                "bottom": 120.0,
+                "x0": 50.0,
+                "x1": 150.0,
+                "words": ["CERTIFICATIONS"],
+            },
+            {
+                "text": "AWS Pro - Amazon",
+                "top": 125.0,
+                "bottom": 135.0,
+                "x0": 50.0,
+                "x1": 200.0,
+                "words": ["AWS"],
+            },
+            {
+                "text": "EDUCATION",
+                "top": 150.0,
+                "bottom": 160.0,
+                "x0": 50.0,
+                "x1": 130.0,
+                "words": ["EDUCATION"],
+            },
+            {
+                "text": "University 2020",
+                "top": 165.0,
+                "bottom": 175.0,
+                "x0": 50.0,
+                "x1": 200.0,
+                "words": ["University"],
+            },
         ]
         geometry = _section_geometry(lines, resume)
         self.assertEqual(geometry["projects"]["line_count"], 2)
@@ -469,7 +629,9 @@ class PdfGeometryTests(unittest.TestCase):
                 "sparse_trailing_line_count": 0,
                 "pages": [{"page": 1, "sparse_trailing_lines": []}],
             }
-            with mock.patch("scripts.check_pdf_geometry.check_pdf_geometry", return_value=mock_report):
+            with mock.patch(
+                "scripts.check_pdf_geometry.check_pdf_geometry", return_value=mock_report
+            ):
                 argv = ["check_pdf_geometry.py", str(pdf_path), "--json"]
                 stdout = io.StringIO()
                 with mock.patch.object(sys, "argv", argv), contextlib.redirect_stdout(stdout):
@@ -503,8 +665,7 @@ class PdfGeometryTests(unittest.TestCase):
             # 3. Non-fit verdict gives exit code 2
             resume_path.write_text(json.dumps({"name": "A"}), encoding="utf-8")
             mock_overflow = {
-                "schema_version": 1,
-                "plan_revision": 1,
+                "schema_version": 2,
                 "verdict": "overflow",
                 "page_count": 2,
                 "bottom_whitespace_mm": None,

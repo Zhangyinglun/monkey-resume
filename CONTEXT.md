@@ -1,116 +1,96 @@
 # MonkeyResume Domain
 
-The domain language for evidence-based resume tailoring, long-term fact ledger management, and deterministic factual auditing.
+Domain language for model-led source ingestion, evidence-grounded tailoring and
+review-gated delivery. Data contracts live in
+`references/source-ingestion.md` and `references/resume-working-schema.md`.
 
-## Language
+## Candidate evidence
 
-### Core Evidence & Snapshot
+**Source Document**: original candidate material with preserved bytes and ordered,
+located text blocks. It is not a render-shaped resume or an automatic semantic parse.
 
-**Source Snapshot**:
-The immutable structured snapshot extracted directly from the candidate's original base resume.
-_Avoid_: Base resume draft, source template, initial working copy
+**Candidate Response**: the candidate's actual answer or correction, preserved
+verbatim as its own source event. Document extraction and model inference are not
+candidate confirmation. Retry identity is distinct from identical answer wording.
 
-**Candidate Evidence Ledger**:
-The durable, cross-JD single source of truth recording all candidate entities, atomic claims, verification states, and provenance.
-_Avoid_: Confirmation list, fact database, resume cache
+**Candidate Evidence Ledger**: durable candidate entities, claims, relationships,
+conflicts and correction history, reusable across JDs.
 
-**Candidate Profile**:
-The long-term record of candidate global preferences, career positioning, alias preferences, and presentation defaults.
-_Avoid_: User settings, config file, preferences cache
+**Candidate Profile**: supported display-name selection and presentation preferences,
+not an independent source of candidate facts. Candidate identity remains stable
+when the display name changes.
 
-**Evidence Entity**:
-A bounded structural experience unit (such as a specific company employment, project, education entry, or skill cluster) that anchors atomic claims.
-_Avoid_: Resume section, experience item, block
+**Evidence Entity**: a bounded person, employment, project, education, skill,
+certification or award to which claims belong; not a displayed section.
 
-**Atomic Claim**:
-The smallest verifiable assertion of responsibility, technical tool usage, quantitative metric, or business outcome bound to an Evidence Entity.
-_Avoid_: Bullet point, resume line, fact item
+**Atomic Claim**: a source-backed assertion bound to one entity. Its polarity,
+current status and evidence state determine whether it can support output.
+`sourced` and `candidate_confirmed` describe origins, not semantic-certainty scores.
 
-**Provenance**:
-The recorded origin and chain of custody of an atomic claim (e.g., extracted from source snapshot, confirmed via targeted user inquiry).
-_Avoid_: Source link, citation tag, audit trail
+**Provenance**: the original source, located blocks and exact excerpt supporting
+a claim or relationship. Excerpt presence alone does not establish entailment.
 
-**Candidate Confirmation**:
-A factual detail supplied or clarified directly by the candidate during JD-driven questioning.
-_Avoid_: User override, prompt answer, user modification
+**Project Ownership**: a source-backed relationship between a specific project
+and employment. Tools, metrics, responsibility, timing and completion scope stay
+with their evidenced objects, even when several claims support one bullet.
 
-### Capabilities & Alignment
+**Correction / Conflict**: an explicit source-backed change preserving prior
+history / an unresolved disagreement withholding affected claims from support.
+Repetition does not silently revive superseded or revoked facts; reactivation is
+an explicit supported correction.
 
-**JD Capability**:
-A specific skill, qualification, technical competency, or responsibility demanded by a target Job Description.
-_Avoid_: Job keyword, requirement tag, JD bullet
+## Tailoring
 
-**Match Type**:
-The categorical alignment dimension between a JD Capability and candidate evidence (`direct`, `semantic_equivalent`, `transferable`, `gap`).
-_Avoid_: Match score, keyword density, fit level
+**JD Requirement**: a responsibility, required capability or preference in the
+original job description. Required/preferred and AND/OR meaning survive analysis.
 
-**Evidence State**:
-The verification status of an atomic claim or capability (`sourced`, `candidate_confirmed`, `needs_confirmation`, `unsupported`).
-_Avoid_: Fact status, validity score, check state
+**Gap**: a requirement not supported by current candidate evidence. A visible
+resume's omission is not by itself a candidate Gap.
 
-**Clarification**:
-A high-leverage targeted inquiry presented to the candidate to confirm missing critical capabilities or metrics.
-_Avoid_: Prompt question, interview prompt, gap question
+**Semantic Normalization**: meaning-preserving translation into standard industry
+language, without expanding tools, scope, outcomes or personal ownership.
 
-**Gap**:
-A target JD Capability for which no supporting evidence exists in the ledger and none was confirmed by the candidate.
-_Avoid_: Missing keyword, weakness, disqualifier
+**Draft**: the model's single target-specific writing artifact: original JD and
+requirements, complete display resume, evidence links and important omissions.
 
-**Semantic Normalization**:
-The accurate mapping of informal or colloquial technical descriptions to standard industry concepts without expanding scope, ownership, or tools.
-_Avoid_: Buzzword injection, keyword stuffing, resume embellishment
+**Tailored Resume**: the draft's recruiter-facing display content, without internal
+IDs. Summary and skills may aggregate evidence; project assertions retain scope.
 
-### Projections, Manifests & Verification
+**Omission**: an important unused contribution with a specific editorial reason.
+Unlisted unused facts remain available to independent review.
 
-**Tailored Resume**:
-A clean, pure display projection formatted for a specific target JD, completely decoupled from internal ledger IDs.
-_Avoid_: Working resume, intermediate output, target draft
+**Tailoring Manifest**: a program-computed mapping of display positions to claims,
+entities and relationships, bound to the draft and evidence context. It is not a
+model-authored plan or proof that the selected prose is true or complete.
 
-**Projection Plan**:
-The target-specific, evidence-bound decision record that selects Content Intents, assigns presentation importance, budgets resume space, and decides which optional content to retain, merge, or remove before display text is produced.
-_Avoid_: Draft resume, keyword score, layout plan
+**Traceability Audit**: deterministic reference, version, usability and structural
+ownership checks. PASS means traceability only, not semantic entailment.
 
-**Content Intent**:
-An evidence-bound instruction describing what a Tailored Resume element must communicate, which Atomic Claims and JD Capabilities support it, and how much presentation space it should receive, without prescribing final prose.
-_Avoid_: Bullet draft, prompt fragment, content suggestion
+## Review and delivery
 
-**Resume Language Optimization**:
-The meaning-preserving transformation of Content Intents into concise, natural, recruiter-facing resume language while retaining exact evidence scope, canonical technical terms, metrics, and ownership.
-_Avoid_: Humanizer bypass, detector evasion, creative rewrite
+**Candidate**: a frozen draft and rendered artifacts awaiting publication. Its
+render UUID is distinct from the stable candidate-person identity. Failed or
+unverified candidates are not Accepted Resumes.
 
-**Skill Presentation Group**:
-A target-specific display grouping whose category label organizes individually evidence-bound Skill items. The label is presentation metadata, not an Evidence Entity or a factual claim about the candidate.
-_Avoid_: Skill Evidence Entity, skill claim cluster, fixed skill category
+**Recruiter Review**: independent pre-publication content review: first a frozen
+blind reading of JD and visible resume, then full original evidence, corrections,
+assertions and important omissions. It evaluates clarity and support, not hiring
+probability, protected attributes or arbitrary style quotas.
 
-**Content Fit Feedback**:
-Measured Candidate PDF geometry describing whether the selected content overflows, underfills, or fits the preferred single-page presentation, used to revise the Projection Plan rather than silently shrink or invent content.
-_Avoid_: Character estimate, layout guess, auto-fit score
+**Review Record**: actual review results bound to the current context, draft,
+display and DOCX/PDF bytes, including content findings and visual inspection.
+Reviewer identity and independence are host provenance declarations, not
+cryptographic proof or a substitute for real review.
 
-**Tailoring Manifest**:
-The comprehensive change ledger mapping every substantive text element in the Tailored Resume back to its source Atomic Claim IDs and justification.
-_Avoid_: Diff file, change log, revision patch
+**Physical QA**: measurements of actual rendered one-page A4 output, text,
+bounds and readable fonts. Visual review additionally inspects wrapping,
+clipping, hierarchy and both artifact previews.
 
-**Audit Finding**:
-A deterministic violation identified by the factual auditor or QA rules (e.g., metric fabrication, tool drift, unlinked claim, role inflation).
-_Avoid_: Linter error, QA bug, audit warning
+**Accepted Resume**: requested DOCX/PDF deliverables published after complete
+current independent content review, actual visual inspection and physical QA.
+This is workflow acceptance, not a guarantee of factual perfection or universal
+DOCX rendering equivalence.
 
-**Candidate PDF**:
-A freshly compiled PDF undergoing automated factual, content, and geometry quality assurance before publication.
-_Avoid_: Staged PDF, temp PDF, draft build
-
-**Accepted Resume**:
-A verified editable DOCX, optionally accompanied by its same-source PDF, and matching projection that have passed all factual, content, and layout gates.
-_Avoid_: Final output, released resume, master copy
-
-**Resume Generation Record (简历生成记录)**:
-A historical association between a successfully generated Accepted Resume, its target company and role, optional job-posting link, and generation time. Each generation retains its own version; it does not imply a submission or interview.
-_Avoid_: Application record, submission history, latest resume link
-
-
-**Recruiter Review**:
-A delivery-time simulation of how an independent reader understands a Tailored Resume against the original JD, using a frozen first impression followed by cited requirement matching. Its advisory opinion does not replace factual or PDF QA or alter Accepted Resume publication.
-_Avoid_: Factual audit, ATS score, hiring decision
-
-**Recruiter Review Report**:
-The version-bound record of a Recruiter Review's execution status, modality, frozen first impression, requirement findings, simulated conclusion and advice. It binds to the exact JD, Tailored Resume, Tailoring Manifest and PDF; incomplete or degraded execution remains explicit.
-_Avoid_: Candidate Evidence Ledger, Audit Finding, hiring probability
+**Resume Generation Record (简历生成记录)**: an accepted generation's historical
+PDF, review and candidate record, associated with target metadata and time.
+Repeated generations remain separate; records do not imply applications or interviews.
