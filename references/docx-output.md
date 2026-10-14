@@ -8,7 +8,7 @@ projection and design tokens to Word paragraphs, tab stops and borders. It does
 not implement pagination, a PDF writer, or a screenshot-based Word document.
 
 Every published PDF is exported from that exact DOCX by LibreOffice Writer.
-Even DOCX-only delivery requires LibreOffice: the exported temporary PDF must
+Even DOCX-only delivery requires LibreOffice: the exported QA PDF must
 pass the existing one-page A4, text, geometry and content gates before publishing.
 Factual audit and warning dispositions remain mandatory. Auto-fit changes layout
 only and now measures the DOCX-derived PDF, never the separate legacy template.
@@ -51,6 +51,12 @@ DOCX/PDF candidates and preserve accepted files. Publication backs up only the
 matching same-stem files (including a stale other-format counterpart), with a rollback journal if a filesystem move fails.
 It does not archive unrelated resumes. Conversion errors never publish an
 unchecked DOCX. There is no alternate-engine or DOCX-to-ODT fallback.
+
+Each successful generation also retains the same-source QA PDF in durable
+history, even for DOCX-only delivery. Use the printed `Historical PDF` path for
+QA and Recruiter Review; see `resume-generation-records.md` for storage and recovery.
+Handled history failures preserve accepted outputs, and handled publication
+failures roll back both the requested output pair and the new history record.
 
 ## OpenAI public skill reuse
 

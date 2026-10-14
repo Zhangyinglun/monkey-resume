@@ -1,6 +1,6 @@
 # Resume Tailoring Data Contracts
 
-All personalized files live under `USER_WORKSPACE/cache/`. One workspace represents one candidate. The Skill package never stores candidate data.
+Evidence and projection files live under `USER_WORKSPACE/cache/`. Durable Resume Generation Records and historical PDFs live under `USER_WORKSPACE/resume_history/`, outside disposable cache cleanup; see [Resume Generation Records](resume-generation-records.md). One workspace represents one candidate. The Skill package never stores candidate data.
 
 ## Source Snapshot: `base-resume.json`
 

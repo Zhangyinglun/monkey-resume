@@ -8,6 +8,18 @@ MonkeyResume 根据你的真实经历生成岗位定制简历，绝不虚构技�
 
 ---
 
+## 简历生成记录
+
+每次成功生成并通过自动校验后（包括仅交付 DOCX），自动保存独立历史 QA PDF；失败不收录。
+打开 `$USER_WORKSPACE/resume_history/index.html`，即可按公司、岗位找到当时
+那版简历及生成时间、岗位链接。同一岗位多次生成互不覆盖，不代表已投递。
+
+生成时通过 `--company`、`--job-title`、`--job-url` 提供已知目标信息；未知值
+可以省略。始终传入与证据账本相同的外部 `--workspace`。岗位链接之后可通过
+`resume_history_manager.py set-url` 补录。
+
+完整命令、链接补录及目录恢复见 [简历生成记录说明](references/resume-generation-records.md)。
+
 ## 快速开始（约 2 分钟）
 
 ### 1. 克隆仓库
@@ -46,7 +58,7 @@ ln -s ~/Projects/monkey-resume ~/.agents/skills/monkey-resume
 - **全链路可追溯**：每条简历要点均直接映射到对应的 Claim ID 与原始依据。
 - **精准岗位匹配**：自动将 JD 需求分类为直接匹配、可迁移或缺失能力。
 - **页面几何门禁**：物理排版校验，严格确保单页 A4 呈现，杜绝溢出。
-- **安全回滚机制**：构建失败文件自动存入 `rejected/`，保护上一份合格简历不被覆盖。
+- **安全回滚机制**：QA 拒绝的候选文件存入 `rejected/`；可处理的历史记录或发布错误保留上一份合格 DOCX/PDF。
 
 ---
 
@@ -60,7 +72,7 @@ ln -s ~/Projects/monkey-resume ~/.agents/skills/monkey-resume
 2. **事实账本**：将经历拆解为绑定实体的原子声明（Atomic Claims），支持跨 JD 复用。
 3. **JD 分析**：将岗位能力与事实匹配，仅在关键信息缺失时发起定向追问。
 4. **规划与草拟**：在 Projection Plan 中选择证据，生成符合招聘语境的精炼要点。
-5. **审计与发布**：执行事实完整性审计，渲染 PDF 并通过单页 A4 几何校验后发布。
+5. **审计与发布**：执行事实完整性审计，渲染 DOCX 及同源 QA PDF，通过单页 A4 几何校验后发布。
 
 ---
 

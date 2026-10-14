@@ -64,7 +64,7 @@ The audit blocks publication on incomplete traceability, metric mismatch, cross-
 
 ## Generate and Validate
 
-1. Generate with `generate_final_resume.py --auto-fit` and explicit evidence/manifest paths. Default delivery is DOCX; use `--format both` for the matching PDF and visual QA. Read `references/docx-output.md` for dependencies and exact format behavior.
+1. Generate with `generate_final_resume.py --auto-fit` and explicit evidence/manifest paths. Default delivery is DOCX; use `--format both` when a current-output PDF is also requested. Use the printed `Historical PDF` for QA and review as described in SKILL step 8. Read `references/docx-output.md` for dependencies and exact format behavior.
 2. Keep auto-fit limited to font, spacing, and margins. It never modifies content.
 3. Treat A4 size, one page, extractable text, required sections, safe minimum margins, complete contact information, placeholder absence, and factual integrity as blocking checks.
 4. Use `pdfplumber` coordinates for line geometry; do not estimate PDF wraps from source character counts.
@@ -78,6 +78,10 @@ The audit blocks publication on incomplete traceability, metric mismatch, cross-
 3. Check clipping, overlap, glyph failures, hierarchy, spacing, sparse trailing lines, and margin balance.
 4. Regenerate and re-render after any material correction.
 5. Report visual QA as incomplete when no visual inspection path is available.
+
+## Recruiter Review Before Handoff
+
+Follow `references/recruiter-review-protocol.md` after QA, including independent context, persisted input snapshot, separate frozen Phase A, complete evidence matching, and current report validation. Apply its failure/fallback branches and shared revision budget. Completion means a valid current report or an explicit limitation status, with recommendation dispositions and modality included in the handoff.
 
 ## Report
 

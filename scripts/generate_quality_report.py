@@ -23,6 +23,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from scripts.audit_factual_integrity import audit_resume  # noqa: E402
 from scripts.check_content_quality import run_all_checks  # noqa: E402
+from scripts.recruiter_review import format_review, read_review  # noqa: E402
 from scripts.resume_cache_manager import validate_jd_analysis  # noqa: E402
 from scripts.resume_shared import (  # noqa: E402
     extract_terms,
@@ -483,6 +484,7 @@ def generate_report(
     projection_plan: dict[str, Any] | None = None,
     language_output: dict[str, Any] | None = None,
     content_fit_feedback: dict[str, Any] | None = None,
+    recruiter_review: dict[str, Any] | None = None,
 ) -> str:
     """Build and return the full quality report as a Markdown string."""
     sections = ["## Quality Check Report", ""]
@@ -515,6 +517,9 @@ def generate_report(
     else:
         sections.append(_format_strategy_summary(None))
 
+    if recruiter_review is not None:
+        sections.append(format_review(recruiter_review))
+
     return "\n".join(sections)
 
 
@@ -532,6 +537,9 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--manifest", help="Path to resume-changes.json")
     parser.add_argument("--evidence", help="Path to candidate-evidence.json")
     parser.add_argument("--base", help="Path to base-resume.json")
+    parser.add_argument("--recruiter-review", help="External Recruiter Review Report (optional)")
+    parser.add_argument("--original-jd", help="Original UTF-8 JD text bound to the review")
+    parser.add_argument("--review-phase-a", help="Separately frozen Phase A JSON snapshot")
     parser.add_argument(
         "--projection-plan",
         dest="projection_plan",
@@ -552,6 +560,10 @@ def _parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = _parse_args()
+
+    if (args.original_jd or args.review_phase_a) and not args.recruiter_review:
+        print("Error: review inputs require --recruiter-review.", file=sys.stderr)
+        return 1
 
     resume_path = Path(args.resume).expanduser().resolve()
     if not resume_path.exists():
@@ -653,6 +665,22 @@ def main() -> int:
             print(f"Warning: PDF not found: {pdf_path}", file=sys.stderr)
             incomplete_inputs = True
 
+    recruiter_review: dict[str, Any] | None = None
+    if args.recruiter_review:
+        review_paths = {"resume": resume_path}
+        for name, value in (("pdf", args.pdf), ("jd", args.original_jd), ("manifest", args.manifest)):
+            if value:
+                review_paths[name] = Path(value).expanduser().resolve()
+        try:
+            recruiter_review = read_review(
+                Path(args.recruiter_review),
+                paths=review_paths,
+                phase_a_path=Path(args.review_phase_a) if args.review_phase_a else None,
+            )
+        except (OSError, ValueError) as exc:
+            print(f"Error: {exc}", file=sys.stderr)
+            return 1
+
     content_checks = run_all_checks(resume)
     print(
         generate_report(
@@ -663,6 +691,7 @@ def main() -> int:
             projection_plan=projection_plan,
             language_output=language_output,
             content_fit_feedback=content_fit_feedback,
+            recruiter_review=recruiter_review,
         )
     )
     content_ok = all(item.get("status") == "PASS" for item in content_checks)
@@ -670,7 +699,11 @@ def main() -> int:
     factual_ok = factual_report is None or factual_report.get("verdict") == "PASS"
     if incomplete_inputs:
         return 1
-    return 0 if content_ok and pdf_ok and factual_ok else 2
+    review_complete = recruiter_review is None or (
+        recruiter_review["execution_status"] == "complete"
+        and recruiter_review["review_mode"] == "independent_subagent"
+    )
+    return 0 if content_ok and pdf_ok and factual_ok and review_complete else 2
 
 
 if __name__ == "__main__":

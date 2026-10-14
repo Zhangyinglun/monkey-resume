@@ -166,6 +166,8 @@ class PdfPipelineTests(unittest.TestCase):
             output_dir = root / "output"
             argv = [
                 "generate_final_resume.py",
+                "--workspace",
+                str(Path(temp_dir)),
                 "--input-json",
                 str(source),
                 "--output-file",
@@ -189,6 +191,8 @@ class PdfPipelineTests(unittest.TestCase):
             source = prepare_audited_workspace(Path(temp_dir), sample_resume())
             argv = [
                 "generate_final_resume.py",
+                "--workspace",
+                str(Path(temp_dir)),
                 "--input-json",
                 str(source),
                 "--output-file",
@@ -218,6 +222,8 @@ class PdfPipelineTests(unittest.TestCase):
 
             argv = [
                 "generate_final_resume.py",
+                "--workspace",
+                str(Path(temp_dir)),
                 "--input-json",
                 str(source),
                 "--output-file",
@@ -232,6 +238,7 @@ class PdfPipelineTests(unittest.TestCase):
             self.assertEqual(current.read_bytes(), b"accepted-current")
             self.assertEqual(other.read_bytes(), b"accepted-other")
             self.assertTrue(list((output_dir / "rejected").glob("*.pdf")))
+            self.assertFalse((root / "resume_history").exists())
 
     def test_passing_candidate_archives_then_publishes(self) -> None:
         import scripts.generate_final_resume as cli
@@ -246,6 +253,8 @@ class PdfPipelineTests(unittest.TestCase):
 
             argv = [
                 "generate_final_resume.py",
+                "--workspace",
+                str(Path(temp_dir)),
                 "--input-json",
                 str(source),
                 "--output-file",
@@ -260,6 +269,9 @@ class PdfPipelineTests(unittest.TestCase):
             self.assertEqual(result, 0)
             self.assertTrue(current.read_bytes().startswith(b"%PDF"))
             self.assertTrue(list((output_dir / "backup").rglob("resume_old_*.pdf")))
+            historical = list((root / "resume_history").glob("generation-*/resume.pdf"))
+            self.assertEqual(len(historical), 1)
+            self.assertEqual(historical[0].read_bytes(), current.read_bytes())
 
     def test_generator_accepts_valid_warning_disposition(self) -> None:
         import scripts.generate_final_resume as cli
@@ -289,6 +301,8 @@ class PdfPipelineTests(unittest.TestCase):
 
             argv = [
                 "generate_final_resume.py",
+                "--workspace",
+                str(Path(temp_dir)),
                 "--input-json",
                 str(source),
                 "--output-file",
@@ -326,6 +340,8 @@ class PdfPipelineTests(unittest.TestCase):
 
             argv = [
                 "generate_final_resume.py",
+                "--workspace",
+                str(Path(temp_dir)),
                 "--input-json",
                 str(source),
                 "--output-file",
@@ -336,6 +352,7 @@ class PdfPipelineTests(unittest.TestCase):
             with mock.patch.object(sys, "argv", argv), contextlib.redirect_stderr(io.StringIO()):
                 result = cli.main()
             self.assertEqual(result, 2)
+            self.assertFalse((root / "resume_history").exists())
 
             # 2. Mismatched finding name should block
             manifest["warning_dispositions"] = [
@@ -541,6 +558,8 @@ class PdfPipelineTests(unittest.TestCase):
             output_dir = root / "output"
             argv = [
                 "generate_final_resume.py",
+                "--workspace",
+                str(Path(temp_dir)),
                 "--input-json",
                 str(root / "cache" / "resume-working.json"),
                 "--output-file",

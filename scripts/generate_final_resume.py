@@ -22,7 +22,17 @@ from scripts.layout_auto_tuner import (  # noqa: E402
     LAYOUT_FIXABLE_CHECKS,
     auto_fit_layout,
 )
-from scripts.resume_shared import load_json_file, validate_resume_content  # noqa: E402
+from scripts.resume_history_manager import (  # noqa: E402
+    history_path,
+    register_generation,
+    validate_job_url,
+)
+from scripts.resume_shared import (  # noqa: E402
+    add_workspace_argument,
+    load_json_file,
+    resolve_user_workspace,
+    validate_resume_content,
+)
 from templates.docx_resume_template import generate_resume  # noqa: E402
 from templates.layout_settings import DOCX_DEFAULT_SETTINGS, LayoutSettings  # noqa: E402
 
@@ -31,16 +41,23 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Render final resume DOCX (default), PDF, or both with A4 layout QA."
     )
+    add_workspace_argument(parser)
+    parser.add_argument("--company", default="", help="Target company (optional)")
+    parser.add_argument("--job-title", default="", help="Target job title (optional)")
+    parser.add_argument("--job-url", default="", help="Optional HTTP(S) job-posting URL")
     parser.add_argument("--input-json", required=True, help="Resume content JSON file path")
     parser.add_argument(
         "--output-file",
         default=None,
         help="Filename only; defaults to resume.docx. Explicit .pdf remains backward compatible.",
     )
-    parser.add_argument("--format", choices=("docx", "pdf", "both"),
-                        help="Default DOCX; an explicit .pdf filename selects PDF for compatibility.")
     parser.add_argument(
-        "--output-dir", default="resume_output", help="Output directory (default: resume_output)"
+        "--format",
+        choices=("docx", "pdf", "both"),
+        help="Default DOCX; an explicit .pdf filename selects PDF for compatibility.",
+    )
+    parser.add_argument(
+        "--output-dir", help="Output directory (default: USER_WORKSPACE/resume_output)"
     )
     parser.add_argument(
         "--manifest-json",
@@ -55,7 +72,10 @@ def parse_args() -> argparse.Namespace:
         help="Source Snapshot path (default: base-resume.json beside input)",
     )
     parser.add_argument(
-        "--font-size-scale", type=float, default=None, help="Font size scale (0.7-1.3; default: 1.1)"
+        "--font-size-scale",
+        type=float,
+        default=None,
+        help="Font size scale (0.7-1.3; default: 1.1)",
     )
     parser.add_argument(
         "--line-height-scale", type=float, default=None, help="Line height scale (0.7-1.3)"
@@ -90,12 +110,19 @@ def _build_layout(args: argparse.Namespace) -> LayoutSettings:
     """Build LayoutSettings from CLI args."""
     overrides = {
         name: getattr(args, name)
-        for name in ('font_size_scale', 'line_height_scale', 'section_spacing_scale',
-                     'item_spacing_scale', 'margin_top_mm', 'margin_bottom_mm', 'margin_side_inch')
+        for name in (
+            "font_size_scale",
+            "line_height_scale",
+            "section_spacing_scale",
+            "item_spacing_scale",
+            "margin_top_mm",
+            "margin_bottom_mm",
+            "margin_side_inch",
+        )
         if getattr(args, name) is not None
     }
     if args.compact and args.font_size_scale is None:
-        overrides['font_size_scale'] = 1.0  # Retain the existing compact-mode preset.
+        overrides["font_size_scale"] = 1.0  # Retain the existing compact-mode preset.
     return replace(DOCX_DEFAULT_SETTINGS, **overrides, compact_mode=args.compact)
 
 
@@ -114,7 +141,20 @@ def _next_rejected_path(output_dir: Path, output_name: str) -> Path:
 
 def main() -> int:
     args = parse_args()
-    output_dir = Path(args.output_dir).expanduser().resolve()
+    workspace = resolve_user_workspace(args.workspace)
+    output_dir = (
+        Path(args.output_dir).expanduser().resolve()
+        if args.output_dir
+        else (workspace / "resume_output").resolve()
+    )
+    try:
+        history_root = history_path(workspace)
+        validate_job_url(args.job_url)
+        if output_dir == history_root or history_root in output_dir.parents:
+            raise ValueError("Output directory must not overlap durable resume history.")
+    except ValueError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 1
 
     requested_name = args.output_file or ("resume.pdf" if args.format == "pdf" else "resume.docx")
     output_name = Path(requested_name).name
@@ -309,43 +349,22 @@ def main() -> int:
             extensions = (".docx", ".pdf") if output_format == "both" else ("." + output_format,)
             candidates = [candidate_path.with_suffix(ext) for ext in extensions]
             destinations = {
-                ext: output_dir / (output_name if Path(output_name).suffix.casefold() == ext
-                                   else str(Path(output_name).with_suffix(ext)))
+                ext: output_dir
+                / (
+                    output_name
+                    if Path(output_name).suffix.casefold() == ext
+                    else str(Path(output_name).with_suffix(ext))
+                )
                 for ext in (".docx", ".pdf")
             }
             if not all(path.is_file() for path in candidates):
                 raise RuntimeError("Missing candidate output; accepted versions preserved.")
             # Archive only after every requested output has passed the shared PDF gate.
-            # Keep a rollback journal so a filesystem error cannot destroy an accepted pair.
-            journal: list[tuple[Path, Path]] = []
-            published: list[Path] = []
-            try:
-                backup_dir = output_dir / "backup" / "Uncategorized"
-                # Retire a same-stem counterpart too: leaving an old PDF beside
-                # a new DOCX would falsely present them as a matching pair.
-                archive_targets = [path for path in output_dir.iterdir()
-                                   if path.stem == Path(output_name).stem
-                                   and path.suffix.casefold() in (".docx", ".pdf")]
-                for target in archive_targets:
-                    if target.exists():
-                        backup_dir.mkdir(parents=True, exist_ok=True)
-                        n = 1
-                        backup = backup_dir / f"{target.stem}_old_{n}{target.suffix}"
-                        while backup.exists():
-                            n += 1
-                            backup = backup_dir / f"{target.stem}_old_{n}{target.suffix}"
-                        target.replace(backup)
-                        journal.append((backup, target))
-                for source in candidates:
-                    target = destinations[source.suffix]
-                    source.replace(target)
-                    published.append(target)
-            except OSError:
-                for target in published:
-                    target.unlink(missing_ok=True)
-                for backup, target in reversed(journal):
-                    backup.replace(target)
-                raise
+            # History is prepared before publication and rolled back if any move fails.
+            with register_generation(
+                workspace, candidate_path, args.company, args.job_title, args.job_url
+            ) as historical_path:
+                _publish_candidates(output_dir, output_name, candidates, destinations)
             final_path = destinations[candidates[0].suffix]
     except Exception as exc:  # noqa: BLE001 - CLI must convert renderer/parser errors into a stable exit code.
         print(f"Generation failed: {exc}", file=sys.stderr)
@@ -353,7 +372,49 @@ def main() -> int:
 
     print("\u2713 QA passed; previous version(s) archived to backup/")
     print(f"Generated successfully: {final_path}")
+    print(f"Historical PDF: {historical_path}")
+    print(f"Resume Generation Records: {history_root / 'index.html'}")
     return 0
+
+
+def _publish_candidates(
+    output_dir: Path,
+    output_name: str,
+    candidates: list[Path],
+    destinations: dict[str, Path],
+) -> None:
+    """Publish the requested pair, restoring accepted files on filesystem failure."""
+    journal: list[tuple[Path, Path]] = []
+    published: list[Path] = []
+    try:
+        backup_dir = output_dir / "backup" / "Uncategorized"
+        # Retire a same-stem counterpart too: leaving an old PDF beside
+        # a new DOCX would falsely present them as a matching pair.
+        archive_targets = [
+            path
+            for path in output_dir.iterdir()
+            if path.stem == Path(output_name).stem and path.suffix.casefold() in (".docx", ".pdf")
+        ]
+        for target in archive_targets:
+            if target.exists():
+                backup_dir.mkdir(parents=True, exist_ok=True)
+                n = 1
+                backup = backup_dir / f"{target.stem}_old_{n}{target.suffix}"
+                while backup.exists():
+                    n += 1
+                    backup = backup_dir / f"{target.stem}_old_{n}{target.suffix}"
+                target.replace(backup)
+                journal.append((backup, target))
+        for source in candidates:
+            target = destinations[source.suffix]
+            source.replace(target)
+            published.append(target)
+    except OSError:
+        for target in published:
+            target.unlink(missing_ok=True)
+        for backup, target in reversed(journal):
+            backup.replace(target)
+        raise
 
 
 if __name__ == "__main__":

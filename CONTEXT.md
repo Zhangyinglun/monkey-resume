@@ -101,3 +101,16 @@ _Avoid_: Staged PDF, temp PDF, draft build
 **Accepted Resume**:
 A verified editable DOCX, optionally accompanied by its same-source PDF, and matching projection that have passed all factual, content, and layout gates.
 _Avoid_: Final output, released resume, master copy
+
+**Resume Generation Record (简历生成记录)**:
+A historical association between a successfully generated Accepted Resume, its target company and role, optional job-posting link, and generation time. Each generation retains its own version; it does not imply a submission or interview.
+_Avoid_: Application record, submission history, latest resume link
+
+
+**Recruiter Review**:
+A delivery-time simulation of how an independent reader understands a Tailored Resume against the original JD, using a frozen first impression followed by cited requirement matching. Its advisory opinion does not replace factual or PDF QA or alter Accepted Resume publication.
+_Avoid_: Factual audit, ATS score, hiring decision
+
+**Recruiter Review Report**:
+The version-bound record of a Recruiter Review's execution status, modality, frozen first impression, requirement findings, simulated conclusion and advice. It binds to the exact JD, Tailored Resume, Tailoring Manifest and PDF; incomplete or degraded execution remains explicit.
+_Avoid_: Candidate Evidence Ledger, Audit Finding, hiring probability

@@ -8,6 +8,17 @@ MonkeyResume turns your real experience into role-specific resumes without inven
 
 ---
 
+## Resume Generation Records
+
+Successful generations, including DOCX-only delivery, automatically retain independent historical QA PDFs. Open
+`$USER_WORKSPACE/resume_history/index.html` to find the company, role, optional
+posting URL, generation time, and the exact historical resume. Pass known target
+metadata with `--company`, `--job-title`, and `--job-url`; unknown values may be
+omitted. Always pass the same external `--workspace` used for your evidence.
+
+For generation examples, URL backfill, and directory recovery, see
+[Resume Generation Records](references/resume-generation-records.md).
+
 ## Quick Start (~2 minutes)
 
 ### 1. Clone the repository
@@ -46,7 +57,7 @@ Use $monkey-resume to tailor my resume for this role and generate a verified sin
 - **Full Traceability**: Every resume bullet links directly to a verified Claim ID.
 - **JD Alignment**: Maps job requirements into direct, transferable, or missing capabilities.
 - **Physical Geometry Gate**: Guarantees a clean single-page A4 layout without overflow.
-- **Safe Rollback**: Failed candidate builds land in `rejected/`—your last accepted PDF is protected.
+- **Safe Rollback**: QA-rejected candidates land in `rejected/`; handled history/publication failures preserve your last accepted DOCX/PDF.
 
 ---
 
@@ -60,7 +71,7 @@ Use $monkey-resume to tailor my resume for this role and generate a verified sin
 2. **Ledger**: Extract experience into reusable, entity-bound Atomic Claims.
 3. **Analyze JD**: Match requirements against candidate evidence; ask targeted clarification only.
 4. **Plan & Draft**: Select evidence into a Projection Plan and draft recruiter-ready bullets.
-5. **Audit & Publish**: Run factual integrity audit, render PDF, and verify 1-page A4 geometry.
+5. **Audit & Publish**: Audit facts, render DOCX with a same-source QA PDF, and verify 1-page A4 geometry before publication.
 
 ---
 

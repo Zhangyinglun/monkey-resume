@@ -92,6 +92,12 @@ Publish only when all blocking gates pass. Preserve the prior Accepted Resume if
 
 Completion criterion: factual audit passes, PDF programmatic QA passes, visual QA is reported accurately, and the accepted output path is outside the Skill package.
 
+## 6. Recruiter Review
+
+Read `references/recruiter-review-protocol.md` and use its separate Phase A and Phase B dispatch instructions and JSON contracts. The host captures bindings before dispatch and persists Phase A before resuming the reviewer; follow that protocol for missing inputs, failures, fallback and revisions.
+
+Completion criterion: the quality-report entrypoint validates a current review or displays an explicit limitation, and the handoff states its status and modality.
+
 ## Regeneration from Existing Projection
 
 Regeneration still requires `resume-changes.json` and `candidate-evidence.json`. Run the same mandatory factual audit before rendering; do not interpret “regeneration only” as permission to bypass evidence checks.
