@@ -31,8 +31,9 @@ from scripts.check_pdf_quality import check_pdf_file  # noqa: E402
 from scripts.layout_auto_tuner import auto_fit_layout  # noqa: E402
 from scripts.resume_history_manager import register_generation, validate_job_url  # noqa: E402
 from scripts.resume_shared import add_workspace_argument, load_json_file  # noqa: E402
-from templates.docx_resume_template import generate_resume  # noqa: E402
-from templates.layout_settings import DOCX_DEFAULT_SETTINGS, LayoutSettings  # noqa: E402
+from templates.docx_resume_template import generate_resume, rendering_environment  # noqa: E402
+from templates.layout_settings import LayoutSettings
+from templates.style_profiles import DEFAULT_STYLE, STYLES, get_style  # noqa: E402
 
 
 def validate_workspace(workspace: Path) -> Path:
@@ -126,8 +127,11 @@ def prepare_candidate(
     auto_fit: bool = False,
     max_trials: int = 12,
     author_id: str = "",
+    style: str = DEFAULT_STYLE,
 ) -> dict:
     """Freeze model text and render; never change Accepted or accepted history."""
+    profile = get_style(style)
+    layout = profile.resolve_layout(layout)
     workspace = validate_workspace(workspace)
     _filename(output_name)
     if max_trials <= 0:
@@ -163,18 +167,20 @@ def prepare_candidate(
                     output_file=pdf.name,
                     max_trials=max_trials,
                     hint_layout=layout,
+                    style=style,
                 ).best_layout
             rendered = Path(
                 generate_resume(
                     pdf.name,
                     compiled["resume"],
                     base_dir=str(directory),
-                    layout=layout or DOCX_DEFAULT_SETTINGS,
+                    layout=layout,
+                    style=style,
                 )
             ).resolve()
             if rendered != pdf:
                 raise ValueError("Renderer returned an unexpected artifact path.")
-            qa = check_pdf_file(pdf)
+            qa = check_pdf_file(pdf, minimum_font_pt=profile.minimum_font_pt)
         except Exception as exc:  # Preserve failed candidates for host feedback.
             error = str(exc)
         record = {
@@ -192,6 +198,8 @@ def prepare_candidate(
             "author_id": author_id.strip(),
             "target": compiled["target"],
             "physical_qa": qa,
+            "style": profile.snapshot(layout),
+            "rendering_environment": rendering_environment(),
             "render_error": error,
         }
         _write(directory / "candidate-record.json", record)
@@ -251,6 +259,7 @@ def prepare_candidate(
             "pdf": str(pdf),
             "physical_qa": qa,
             "qa_passed": not error and _qa_passes(qa),
+            "style": record["style"],
             "render_error": error,
             "review_template": template,
             "review_template_path": str(directory / "review-template.json"),
@@ -401,7 +410,7 @@ def publish_candidate(
             if _sha(artifact) != record[artifact.suffix[1:] + "_sha256"]:
                 raise ValueError("Actual candidate artifact changed after review.")
         _validate_review(review, record)
-        qa = check_pdf_file(pdf)
+        qa = check_pdf_file(pdf, minimum_font_pt=record.get("style", {}).get("minimum_font_pt", 8.5))
         if not _qa_passes(qa):
             raise ReviewNotReady("Actual PDF must pass one-page A4 and readable geometry QA.")
         output = _directory(workspace, "resume_output")
@@ -494,6 +503,7 @@ def parse_args() -> argparse.Namespace:
     prepare.add_argument("--draft", required=True)
     prepare.add_argument("--output-file", default="resume.docx")
     prepare.add_argument("--author-id", default="")
+    prepare.add_argument("--style", choices=tuple(STYLES), default=DEFAULT_STYLE)
     prepare.add_argument("--auto-fit", action="store_true")
     prepare.add_argument("--auto-fit-max-trials", type=int, default=12)
     prepare.add_argument("--compact", action="store_true")
@@ -541,12 +551,13 @@ def main() -> int:
                     ):
                         raise ValueError(f"Invalid layout override: {name}")
                     overrides[name] = value
-            layout = replace(DOCX_DEFAULT_SETTINGS, **overrides, compact_mode=args.compact)
+            layout = replace(get_style(args.style).layout, **overrides, compact_mode=args.compact)
             result = prepare_candidate(
                 workspace,
                 Path(args.draft),
                 output_name=args.output_file,
                 layout=layout,
+                style=args.style,
                 auto_fit=args.auto_fit,
                 max_trials=args.auto_fit_max_trials,
                 author_id=args.author_id,

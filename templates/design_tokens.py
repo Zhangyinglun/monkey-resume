@@ -46,6 +46,7 @@ class DesignTokens:
     section_space_before: float = 8.5
     section_space_after: float = 5.0
     body_space_after: float = 6.2
+    company_space_before: float = 0.0
     company_space_after: float = 2.5
     job_detail_space_after: float = 4.5
     bullet_space_after: float = 3.2

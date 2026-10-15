@@ -13,6 +13,12 @@ Unsupported requirements remain gaps, not invented experience. Professional
 positioning appears in experience and skills; generated resumes have no Summary
 section.
 
+The default `professional-v2` style uses black text, left-aligned 11 pt body,
+short headings and bounded auto-fit. Select `prepare --style legacy-v1` for the
+previous appearance. To compare both with wholly fictional content, run
+`python3 scripts/preview_resume_styles.py --output-dir /absolute/external/new-directory`.
+Design previews are not Accepted Resumes.
+
 ## Install
 
 ```bash

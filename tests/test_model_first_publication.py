@@ -111,17 +111,53 @@ class PublicationTests(unittest.TestCase):
             ("load_candidate_context", lambda p: copy.deepcopy(self.context)),
             ("compile_draft", lambda d, c: {**copy.deepcopy(self.compiled), **c}),
             ("generate_resume", self.render),
-            ("check_pdf_file", lambda p: copy.deepcopy(self.qa)),
+            ("check_pdf_file", lambda p, **kwargs: copy.deepcopy(self.qa)),
+            ("rendering_environment", lambda: {"renderer_version": "synthetic test environment"}),
         ):
             mock = patch.object(publication, name, replacement, create=True)
             mock.start()
             self.addCleanup(mock.stop)
 
-    def render(self, name: str, content: dict, base_dir: str, layout: object) -> str:
+    def render(self, name: str, content: dict, base_dir: str, layout: object, *, style: str) -> str:
         pdf = Path(base_dir) / name
         pdf.write_bytes(b"%PDF mock actual artifact")
         pdf.with_suffix(".docx").write_bytes(b"DOCX mock actual artifact")
         return str(pdf)
+
+    def test_default_compact_cli_and_auto_fit_remain_usable(self) -> None:
+        from dataclasses import replace
+
+        from scripts.layout_auto_tuner import AutoFitResult
+        from templates.style_profiles import get_style
+
+        for auto in (False, True):
+            args = ["generate_final_resume.py", "prepare", "--workspace", str(self.workspace),
+                    "--draft", str(self.draft), "--compact"]
+            if auto:
+                args.append("--auto-fit")
+            compact = get_style().resolve_layout(replace(get_style().layout, compact_mode=True))
+            with self.subTest(auto=auto), patch.object(sys, "argv", args), patch.object(
+                publication, "auto_fit_layout", return_value=AutoFitResult(compact, self.qa, 1)
+            ), patch("builtins.print"):
+                self.assertEqual(publication.main(), 0)
+
+    def test_style_and_final_auto_fit_layout_are_frozen(self) -> None:
+        from dataclasses import replace
+
+        from scripts.layout_auto_tuner import AutoFitResult
+        from templates.style_profiles import get_style
+
+        selected = replace(get_style().layout, item_spacing_scale=0.8)
+        with patch.object(publication, "auto_fit_layout", return_value=AutoFitResult(selected, self.qa, 2)):
+            prepared = publication.prepare_candidate(self.workspace, self.draft, auto_fit=True, author_id="writer")
+        self.assertTrue(prepared["qa_passed"], prepared["render_error"])
+        record = json.loads(Path(prepared["record"]).read_text(encoding="utf-8"))
+        self.assertEqual(record["style"]["name"], "professional-v2")
+        self.assertEqual(record["style"]["layout"]["item_spacing_scale"], 0.8)
+        self.assertEqual(record["rendering_environment"]["renderer_version"], "synthetic test environment")
+        with patch.object(publication, "check_pdf_file", return_value=self.qa) as check:
+            publication.publish_candidate(self.workspace, prepared["candidate_id"], self.review(prepared))
+        self.assertEqual(check.call_args.kwargs["minimum_font_pt"], 10.5)
 
     def prepare(self) -> dict:
         return publication.prepare_candidate(self.workspace, self.draft, author_id="writer")

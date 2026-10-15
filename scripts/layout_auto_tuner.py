@@ -13,7 +13,8 @@ from typing import Any
 
 from scripts.check_pdf_quality import DEFAULT_MARGIN_THRESHOLDS, check_pdf_file
 from templates.docx_resume_template import generate_resume
-from templates.layout_settings import DOCX_DEFAULT_SETTINGS, LayoutSettings
+from templates.layout_settings import LayoutSettings
+from templates.style_profiles import DEFAULT_STYLE, bounded_layouts, get_style
 
 # Checks that layout tuning can potentially fix (margins, page overflow).
 LAYOUT_FIXABLE_CHECKS = {
@@ -201,30 +202,44 @@ def _run_quality_check(pdf_path: Path) -> dict[str, Any]:
     return check_pdf_file(pdf_path)
 
 
-def _run_trial(content: dict[str, Any], output_file: str, layout: LayoutSettings, trial_dir: Path) -> AutoFitTrial:
+def _run_trial(content: dict[str, Any], output_file: str, layout: LayoutSettings, trial_dir: Path, *, style: str = DEFAULT_STYLE) -> AutoFitTrial:
     """Generate PDF and run quality check for a single layout candidate."""
     trial_dir.mkdir(parents=True, exist_ok=True)
     with redirect_stdout(StringIO()):
-        generated = generate_resume(output_file, content, base_dir=str(trial_dir), layout=layout)
-    return AutoFitTrial(layout=layout, report=_run_quality_check(Path(generated)))
+        generated = generate_resume(output_file, content, base_dir=str(trial_dir), layout=layout, style=style)
+    return AutoFitTrial(layout=layout, report=check_pdf_file(Path(generated), minimum_font_pt=get_style(style).minimum_font_pt))
 
 
 def auto_fit_layout(
     content: dict[str, Any],
     *, output_file: str, max_trials: int,
     hint_layout: LayoutSettings | None = None,
+    style: str = DEFAULT_STYLE,
 ) -> AutoFitResult:
     """Try multiple layout presets and return the best trial."""
+    if max_trials <= 0:
+        raise ValueError("max_trials must be positive.")
+    profile = get_style(style)
     with tempfile.TemporaryDirectory(prefix="resume-autofit-") as temp_dir:
         base_temp = Path(temp_dir)
 
         # Phase 1: Diagnostic pass
-        first_layout = hint_layout or DOCX_DEFAULT_SETTINGS
-        first_trial = _run_trial(content, output_file, first_layout, base_temp / "trial-1")
+        first_layout = profile.resolve_layout(hint_layout)
+        first_trial = _run_trial(content, output_file, first_layout, base_temp / "trial-1", style=style)
 
         direction = _diagnose_direction(first_trial.report)
         if direction == "pass":
             return AutoFitResult(best_layout=first_trial.layout, best_report=first_trial.report, trials_run=1)
+
+        if style == DEFAULT_STYLE:
+            trials = [first_trial]
+            for candidate in bounded_layouts(profile, first_layout)[:max_trials - 1]:
+                trial = _run_trial(content, output_file, candidate, base_temp / f"trial-{len(trials) + 1}", style=style)
+                trials.append(trial)
+                if trial.report.get("verdict") == "PASS":
+                    return AutoFitResult(trial.layout, trial.report, len(trials))
+            best = max(trials, key=score_trial)
+            return AutoFitResult(best.layout, best.report, len(trials))
 
         # Phase 2: Directional candidates
         candidates = [
@@ -236,7 +251,7 @@ def auto_fit_layout(
         ]
 
         trials = [first_trial] + [
-            _run_trial(content, output_file, layout, base_temp / f"trial-{i}")
+            _run_trial(content, output_file, layout, base_temp / f"trial-{i}", style=style)
             for i, layout in enumerate(candidates, start=2)
         ]
 

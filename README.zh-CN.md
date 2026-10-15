@@ -10,6 +10,11 @@ Skill。宿主模型阅读完整原文、理解事实并写作；本地脚本保
 物理 QA。没有证据的岗位要求保留为缺口，不补成经历。岗位定位直接体现在
 工作经历和技能栏中，生成简历不包含 Summary 栏。
 
+默认 `professional-v2` 样式采用黑白、左对齐 11 pt 正文、简短章节标题和有可读性下限的自动适配。
+通过 `prepare --style legacy-v1` 可选择原样式。运行
+`python3 scripts/preview_resume_styles.py --output-dir /absolute/external/new-directory`
+可用完全虚构内容生成新旧对比；样式预览不属于 Accepted Resume。
+
 ## 安装
 
 ```bash

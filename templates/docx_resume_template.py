@@ -5,11 +5,14 @@ entirely to WordprocessingML and LibreOffice. See references/docx-output.md.
 """
 from __future__ import annotations
 
+import hashlib
 import os
+import platform
 import re
 import shutil
 import subprocess
 import tempfile
+from importlib.metadata import version
 from pathlib import Path
 from typing import Any
 
@@ -21,8 +24,9 @@ from docx.shared import Inches, Mm, Pt, RGBColor
 from docx.text.run import Run
 
 from scripts.resume_shared import normalize_skill_items, validate_resume_content
-from templates.design_tokens import DEFAULT_TOKENS, DesignTokens
-from templates.layout_settings import DOCX_DEFAULT_SETTINGS, LayoutSettings
+from templates.design_tokens import DesignTokens
+from templates.layout_settings import LayoutSettings
+from templates.style_profiles import DEFAULT_STYLE, get_style
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
@@ -59,8 +63,11 @@ def _add_text(paragraph: Any, text: str, *, bold: bool = False) -> None:
 
 def generate_docx(output_file: str, content_dict: dict[str, Any], base_dir: str,
                   layout: LayoutSettings | None = None,
-                  tokens: DesignTokens | None = None) -> str:
+                  tokens: DesignTokens | None = None, *, style: str = DEFAULT_STYLE) -> str:
     validate_resume_content(content_dict)
+    profile = get_style(style)
+    settings, design_tokens = profile.resolve_layout(layout), tokens or profile.tokens
+    profile.validate(settings, design_tokens)
     target_dir = Path(base_dir).expanduser().resolve()
     if target_dir == PROJECT_ROOT or PROJECT_ROOT in target_dir.parents:
         raise ValueError('Output must live outside the Skill package.')
@@ -70,7 +77,6 @@ def generate_docx(output_file: str, content_dict: dict[str, Any], base_dir: str,
     target = target_dir / output_file
     if target.exists():
         raise FileExistsError(f'Refusing to overwrite existing DOCX: {target}')
-    settings, design_tokens = layout or DOCX_DEFAULT_SETTINGS, tokens or DEFAULT_TOKENS
     font_scale, line_height_scale = settings.effective_font_size_scale, settings.effective_line_height_scale
     section_spacing_scale, item_spacing_scale = settings.effective_section_spacing_scale, settings.effective_item_spacing_scale
     doc = Document()
@@ -79,7 +85,7 @@ def generate_docx(output_file: str, content_dict: dict[str, Any], base_dir: str,
     section.top_margin, section.bottom_margin = Mm(settings.margin_top_mm), Mm(settings.margin_bottom_mm)
     section.left_margin = section.right_margin = Inches(settings.margin_side_inch)
     normal = doc.styles['Normal']
-    normal.font.name = 'Carlito'  # Open-source Calibri-compatible font; install on consumers too.
+    normal.font.name = profile.font_family
     normal.font.size = Pt(design_tokens.body_font_size * font_scale)
     normal.font.color.rgb = RGBColor(*design_tokens.body_ink_color)
     normal.paragraph_format.space_after = Pt(design_tokens.body_space_after * item_spacing_scale)
@@ -88,15 +94,15 @@ def generate_docx(output_file: str, content_dict: dict[str, Any], base_dir: str,
     def paragraph(text: str, size: float = design_tokens.body_font_size, *, bold: bool = False,
                   after: float = design_tokens.body_space_after, center: bool = False,
                   keep: bool = False, leading: float = design_tokens.body_leading,
-                  justify: bool = True) -> Any:
+                  justify: bool = profile.justify_body) -> Any:
         p = doc.add_paragraph()
         p.paragraph_format.space_after = Pt(after * item_spacing_scale)
         p.paragraph_format.keep_with_next = keep
         p.paragraph_format.widow_control = True
         if center:
             p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        elif justify:
-            p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+        else:
+            p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY if justify else WD_ALIGN_PARAGRAPH.LEFT
         _add_text(p, text, bold=bold)
         # Compress leading independently of font size, with a glyph-clearance floor.
         p.paragraph_format.line_spacing = Pt(max(leading * line_height_scale, size * font_scale * 1.1))
@@ -105,7 +111,7 @@ def generate_docx(output_file: str, content_dict: dict[str, Any], base_dir: str,
         return p
 
     def heading(title: str) -> None:
-        p = paragraph(title, design_tokens.section_font_size, bold=True, after=design_tokens.section_space_after,
+        p = paragraph(profile.heading(title), design_tokens.section_font_size, bold=True, after=design_tokens.section_space_after,
                       keep=True, leading=design_tokens.section_leading, justify=False)
         p.paragraph_format.space_before = Pt(design_tokens.section_space_before * section_spacing_scale)
         for run in p.runs:
@@ -119,11 +125,25 @@ def generate_docx(output_file: str, content_dict: dict[str, Any], base_dir: str,
         p._p.get_or_add_pPr().append(borders)
 
     def row(left: str, dates: str) -> None:
+        follows_bullet = bool(doc.paragraphs and doc.paragraphs[-1].text.startswith("• "))
         p = paragraph(left, design_tokens.company_font_size, bold=True, after=design_tokens.company_space_after,
                       keep=True, leading=design_tokens.company_leading, justify=False)
+        if follows_bullet:
+            p.paragraph_format.space_before = Pt(design_tokens.company_space_before * section_spacing_scale)
         width = section.page_width - section.left_margin - section.right_margin
         p.paragraph_format.tab_stops.add_tab_stop(width, WD_TAB_ALIGNMENT.RIGHT)
-        date_run = p.add_run('\t' + dates)
+        date_run = p.add_run()
+        if profile.name == DEFAULT_STYLE:
+            # Anchor to the right margin rather than a reader's numeric tab stop.
+            tab = OxmlElement('w:ptab')
+            for key, value in {'alignment': 'right', 'relativeTo': 'margin', 'leader': 'none'}.items():
+                tab.set(qn('w:' + key), value)
+            date_run._r.append(tab)
+            # Readers that omit positional tabs still retain a word boundary.
+            date_run.add_text(' ' + dates)
+        else:
+            date_run.add_tab()
+            date_run.add_text(dates)
         date_run.bold = False
         date_run.font.size = Pt(design_tokens.dates_font_size * font_scale)
 
@@ -209,9 +229,46 @@ def export_pdf(docx_path: Path) -> Path:
 
 
 def generate_resume(output_file: str, content_dict: dict[str, Any], base_dir: str = 'resume_output',
-                    layout: LayoutSettings | None = None) -> str:
+                    layout: LayoutSettings | None = None, *, style: str = DEFAULT_STYLE) -> str:
     """Compatibility adapter for the existing PDF geometry and auto-fit gates."""
     if Path(output_file).suffix.lower() != '.pdf':
         raise ValueError('QA output_file must use .pdf.')
-    source = generate_docx(str(Path(output_file).with_suffix('.docx')), content_dict, base_dir, layout)
+    source = generate_docx(str(Path(output_file).with_suffix('.docx')), content_dict, base_dir, layout, style=style)
     return str(export_pdf(Path(source)))
+
+
+def rendering_environment() -> dict[str, Any]:
+    """Record the renderer and installed font files, without resume content."""
+    soffice = shutil.which("soffice") or shutil.which("libreoffice")
+    renderer_version = None
+    if soffice:
+        try:
+            result = subprocess.run([soffice, "--version"], capture_output=True, text=True, timeout=15, check=False)
+            if result.returncode == 0:
+                renderer_version = result.stdout.strip() or None
+        except (OSError, subprocess.SubprocessError):
+            pass
+    font_files: set[Path] = set()
+    matcher = shutil.which("fc-match")
+    if matcher:
+        for variant in ("Regular", "Bold", "Italic", "Bold Italic"):
+            try:
+                result = subprocess.run([matcher, "--format=%{file}", f"Carlito:style={variant}"], capture_output=True, text=True, timeout=15, check=False)
+                path = Path(result.stdout.strip())
+                if result.returncode == 0 and path.is_file():
+                    font_files.add(path)
+            except (OSError, subprocess.SubprocessError):
+                continue
+    else:
+        directories = [Path("/Library/Fonts"), Path.home() / "Library/Fonts"]
+        if os.name == "nt":
+            directories += [Path(os.environ.get("WINDIR", "C:/Windows")) / "Fonts",
+                            Path(os.environ.get("LOCALAPPDATA", "")) / "Microsoft/Windows/Fonts"]
+        for directory in directories:
+            if directory.is_dir():
+                font_files.update(directory.glob("[Cc]arlito*.ttf"))
+    return {
+        "platform": platform.platform(), "python_docx": version("python-docx"),
+        "renderer": "LibreOffice Writer", "renderer_version": renderer_version,
+        "font_files": [{"name": path.name, "sha256": hashlib.sha256(path.read_bytes()).hexdigest()} for path in sorted(font_files)],
+    }

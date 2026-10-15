@@ -59,7 +59,7 @@ def extract_resume_blocks(path: Path) -> list[dict]:
                         (node.text or "")
                         if node.tag == f"{namespace}t"
                         else "\t"
-                        if node.tag == f"{namespace}tab"
+                        if node.tag in (f"{namespace}tab", f"{namespace}ptab")
                         else "\n"
                         if node.tag in (f"{namespace}br", f"{namespace}cr")
                         else ""
@@ -131,7 +131,7 @@ def extract_docx_text(path: Path) -> str:
             (node.text or "")
             if node.tag == f"{namespace}t"
             else "\t"
-            if node.tag == f"{namespace}tab"
+            if node.tag in (f"{namespace}tab", f"{namespace}ptab")
             else "\n"
             if node.tag in (f"{namespace}br", f"{namespace}cr")
             else ""

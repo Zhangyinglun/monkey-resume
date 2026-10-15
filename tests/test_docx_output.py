@@ -19,7 +19,8 @@ from templates.docx_resume_template import (
     generate_resume,
     require_carlito,
 )
-from templates.layout_settings import DOCX_DEFAULT_SETTINGS, LayoutSettings
+from templates.layout_settings import LayoutSettings
+from templates.style_profiles import get_style
 from tests.sample_data import sample_resume
 
 
@@ -27,7 +28,7 @@ class DocxTemplateTests(unittest.TestCase):
     def test_contact_is_immediately_followed_by_experience(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             doc = Document(generate_docx("resume.docx", sample_resume(), directory))
-        self.assertEqual(doc.paragraphs[2].text, "PROFESSIONAL EXPERIENCE")
+        self.assertEqual(doc.paragraphs[2].text, "Experience")
         self.assertNotIn("SUMMARY", [p.text for p in doc.paragraphs])
         self.assertTrue(all(p.text.strip() for p in doc.paragraphs[:4]))
 
@@ -43,10 +44,10 @@ class DocxTemplateTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             doc = Document(generate_docx("default.docx", sample_resume(), directory))
             self.assertEqual(doc.styles["Normal"].font.name, "Carlito")
-            self.assertEqual(doc.styles["Normal"].font.size.pt, 10.5)
-            self.assertEqual(doc.paragraphs[0].runs[0].font.size.pt, 16.5)
-            self.assertAlmostEqual(doc.sections[0].top_margin.mm, 12.7)
-            self.assertAlmostEqual(doc.sections[0].bottom_margin.mm, 12.7)
+            self.assertEqual(doc.styles["Normal"].font.size.pt, 11.0)
+            self.assertEqual(doc.paragraphs[0].runs[0].font.size.pt, 19.0)
+            self.assertAlmostEqual(doc.sections[0].top_margin.mm, 15.24)
+            self.assertAlmostEqual(doc.sections[0].bottom_margin.mm, 15.24)
 
     def test_explicit_layout_and_plain_text_roundtrip(self) -> None:
         resume = sample_resume()
@@ -54,7 +55,7 @@ class DocxTemplateTests(unittest.TestCase):
         before = copy.deepcopy(resume)
         layout = LayoutSettings(font_size_scale=1.0, margin_side_inch=0.75)
         with tempfile.TemporaryDirectory() as directory:
-            path = Path(generate_docx("resume.docx", resume, directory, layout))
+            path = Path(generate_docx("resume.docx", resume, directory, layout, style="legacy-v1"))
             doc = Document(path)
             self.assertEqual(doc.styles["Normal"].font.size.pt, 9.5)
             self.assertAlmostEqual(doc.sections[0].left_margin.mm, 19.05)
@@ -71,6 +72,7 @@ class DocxTemplateTests(unittest.TestCase):
                         sample_resume(),
                         directory,
                         LayoutSettings(line_height_scale=scale),
+                        style="legacy-v1",
                     )
                 )
                 texts.append(extract_docx_text(path))
@@ -96,7 +98,7 @@ class DocxTemplateTests(unittest.TestCase):
             ),
         ):
             result = auto_fit_layout(before, output_file="resume.pdf", max_trials=2)
-        self.assertEqual(result.best_layout, DOCX_DEFAULT_SETTINGS)
+        self.assertEqual(result.best_layout, get_style().layout)
         self.assertEqual(result.trials_run, 1)
         self.assertEqual(before, sample_resume())
 

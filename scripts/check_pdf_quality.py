@@ -121,6 +121,7 @@ def build_quality_report(
     geometry_findings: list[dict[str, Any]] | None = None,
     bounds_findings: list[dict[str, Any]] | None = None,
     min_font_pt: float | None = None,
+    minimum_font_pt: float = 8.5,
 ) -> dict[str, Any]:
     checks: list[dict[str, Any]] = []
 
@@ -258,10 +259,10 @@ def build_quality_report(
             },
             {
                 "name": "font_readability",
-                "passed": min_font_pt is None or min_font_pt >= 8.5,
+                "passed": min_font_pt is None or min_font_pt >= minimum_font_pt,
                 "detail": {
                     "minimum_pt": min_font_pt,
-                    "threshold_pt": 8.5,
+                    "threshold_pt": minimum_font_pt,
                     "measured": min_font_pt is not None,
                 },
             },
@@ -428,6 +429,7 @@ def check_pdf_file(
     *,
     keywords: list[str] | None = None,
     margin_thresholds: dict[str, float] | None = None,
+    minimum_font_pt: float = 8.5,
 ) -> dict[str, Any]:
     """Run full quality check on a PDF file and return the report dict.
 
@@ -509,6 +511,7 @@ def check_pdf_file(
             geometry_findings=geometry_findings,
             bounds_findings=bounds_findings,
             min_font_pt=min(sizes) if sizes else None,
+            minimum_font_pt=minimum_font_pt,
         )
 
 
