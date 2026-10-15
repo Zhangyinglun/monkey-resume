@@ -17,7 +17,6 @@ def sample_resume() -> dict[str, Any]:
     return {
         "name": "Alex Chen",
         "contact": "alex@example.com | +1 206-555-0100",
-        "summary": "Backend engineer building distributed systems.",
         "skills": [{"category": "Languages", "items": "Python, Go, C++"}],
         "experience": [
             {
@@ -38,6 +37,21 @@ def sample_resume() -> dict[str, Any]:
 
 
 class ResumeSharedTests(unittest.TestCase):
+    def test_resume_without_summary_passes_strict_validation(self) -> None:
+        resume = sample_resume()
+        validate_resume_content(resume, require_non_empty=True)
+        self.assertNotIn("summary", {path for path, *_ in iter_resume_text_fields(resume)})
+
+    def test_removed_summary_field_is_rejected_even_when_empty(self) -> None:
+        for value in ("Old profile", "", "  ", None, [], {}):
+            for strict in (False, True):
+                resume = sample_resume()
+                resume["summary"] = value
+                with self.subTest(value=value, strict=strict), self.assertRaisesRegex(
+                    ValueError, "summary.*no longer.*supported"
+                ):
+                    validate_resume_content(resume, require_non_empty=strict)
+
     def test_short_keywords_require_boundaries(self) -> None:
         self.assertFalse(term_matches("Maintained negotiation services", "AI"))
         self.assertFalse(term_matches("Negotiated vendor contracts", "Go"))
@@ -70,7 +84,6 @@ class ResumeSharedTests(unittest.TestCase):
         payload = {
             "name": 123,
             "contact": "a@example.com",
-            "summary": "Engineer",
             "skills": [{"category": "Languages", "items": "Python"}],
             "experience": [
                 {

@@ -101,7 +101,6 @@ class PdfGeometryTests(unittest.TestCase):
         resume = {
             "name": "Alex Chen",
             "contact": "alex@example.com | +1 206-555-0100",
-            "summary": "Backend engineer.",
             "skills": [{"category": "Languages", "items": ["Python", "Go"]}],
             "experience": [
                 {
@@ -114,22 +113,6 @@ class PdfGeometryTests(unittest.TestCase):
             "education": [{"school": "Example", "degree": "B.S.", "dates": "2020"}],
         }
         lines = [
-            {
-                "text": "SUMMARY",
-                "top": 20.0,
-                "bottom": 30.0,
-                "x0": 50.0,
-                "x1": 120.0,
-                "words": ["SUMMARY"],
-            },
-            {
-                "text": "Backend engineer.",
-                "top": 32.0,
-                "bottom": 42.0,
-                "x0": 50.0,
-                "x1": 180.0,
-                "words": ["Backend", "engineer."],
-            },
             {
                 "text": "PROFESSIONAL EXPERIENCE",
                 "top": 50.0,
@@ -172,10 +155,8 @@ class PdfGeometryTests(unittest.TestCase):
             },
         ]
         geometry = _section_geometry(lines, resume)
-        self.assertEqual(geometry["summary"]["line_count"], 1)
         self.assertEqual(geometry["experience[0]"]["line_count"], 2)
         self.assertEqual(geometry["skills"]["line_count"], 1)
-        self.assertAlmostEqual(geometry["summary"]["height_mm"], points_to_mm(10.0), places=1)
         self.assertAlmostEqual(geometry["experience[0]"]["height_mm"], points_to_mm(22.0), places=1)
 
     def test_section_geometry_disambiguates_duplicate_companies_using_dates(self) -> None:
@@ -318,7 +299,6 @@ class PdfGeometryTests(unittest.TestCase):
         resume = {
             "name": "Alex Chen",
             "contact": "alex@example.com",
-            "summary": "Experienced engineer.",
             "skills": [{"category": "L", "items": ["Go"]}],
             "experience": [{"company": "C", "title": "T", "dates": "D", "bullets": ["B"]}],
             "education": [{"school": "S", "degree": "D", "dates": "2020"}],
@@ -355,7 +335,6 @@ class PdfGeometryTests(unittest.TestCase):
         resume = {
             "name": "Alex Chen",
             "contact": "alex@example.com",
-            "summary": "Experienced engineer.",
             "skills": [
                 {"category": "L", "items": ["Python", "Go"]},
                 {"category": "D", "items": ["PostgreSQL"]},
@@ -390,7 +369,6 @@ class PdfGeometryTests(unittest.TestCase):
         resume = {
             "name": "Alex Chen",
             "contact": "alex@example.com",
-            "summary": "Experienced engineer.",
             "skills": [
                 {"category": "1", "items": ["A"]},
                 {"category": "2", "items": ["B"]},
@@ -433,7 +411,6 @@ class PdfGeometryTests(unittest.TestCase):
         resume = {
             "name": "Alex Chen",
             "contact": "alex@example.com",
-            "summary": "Experienced engineer.",
             "skills": [
                 {"category": "Languages", "items": ["Python", "Go"]},
                 {"category": "Cloud", "items": ["AWS", "GCP"]},
@@ -482,7 +459,6 @@ class PdfGeometryTests(unittest.TestCase):
         resume = {
             "name": "Alex Chen",
             "contact": "alex@example.com",
-            "summary": "Experienced engineer.",
             "skills": [{"category": "L", "items": ["Python", "Go"]}],
             "experience": [{"company": "C", "title": "T", "dates": "D", "bullets": ["B"]}],
             "education": [{"school": "S", "degree": "D", "dates": "2020"}],

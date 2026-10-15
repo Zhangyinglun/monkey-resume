@@ -11,7 +11,7 @@ import re
 from pathlib import Path
 from typing import Any, Iterator
 
-REQUIRED_KEYS = ("name", "contact", "summary", "skills", "experience", "education")
+REQUIRED_KEYS = ("name", "contact", "skills", "experience", "education")
 DEFAULT_WORKSPACE_REL_PATH = Path("Documents") / "MonkeyResume"
 
 
@@ -145,11 +145,16 @@ def validate_resume_content(payload: dict[str, Any], *, require_non_empty: bool 
     (used by the PDF generator).  Otherwise only type checks are performed
     (used by the cache manager and template renderer).
     """
+    if "summary" in payload:
+        raise ValueError(
+            "`summary` is no longer a supported resume field. "
+            "Place relevant, supported contributions in experience or skills instead."
+        )
     missing = [key for key in REQUIRED_KEYS if key not in payload]
     if missing:
         raise ValueError(f"Input content missing required fields: {', '.join(missing)}")
 
-    for key in ("name", "contact", "summary"):
+    for key in ("name", "contact"):
         value = payload[key]
         if not isinstance(value, str):
             raise ValueError(f"`{key}` must be a string.")
@@ -283,7 +288,7 @@ def iter_resume_text_fields(
     resume: dict[str, Any],
 ) -> Iterator[tuple[str, str, str, str]]:
     """Yield substantive display fields as path, text, entity type, and entity key."""
-    for field in ("name", "contact", "summary"):
+    for field in ("name", "contact"):
         value = resume.get(field)
         if isinstance(value, str) and value.strip():
             yield field, value, "profile", "profile"

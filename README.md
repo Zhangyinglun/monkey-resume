@@ -9,7 +9,9 @@ bindings and render editable DOCX with a same-source PDF.
 
 Traceability is not proof of truth. Publication requires a complete independent
 content review and actual visual inspection, plus measured one-page A4 QA.
-Unsupported requirements remain gaps, not invented experience.
+Unsupported requirements remain gaps, not invented experience. Professional
+positioning appears in experience and skills; generated resumes have no Summary
+section.
 
 ## Install
 

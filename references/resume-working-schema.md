@@ -31,13 +31,20 @@ empty scaffold content is not acceptable candidate content.
 - `target`: `original_jd` is the full original UTF-8 text, not a path or a writer's
   summary. `requirements` contains `{id, text, priority}` records with P1/P2/P3.
   Optional `company`, `role`, `job_url` are known target metadata.
-- `resume`: pure display fields `name`, `contact`, `summary`, `skills`,
+- `resume`: pure display fields `name`, `contact`, `skills`,
   `experience`, `education`; optional projects/certifications/awards. Skills use
   `{category, items: [strings]}`. Internal IDs never appear inside display text.
 - `evidence_links`: display positions map to supporting claim IDs. Structural
   sections also declare their exact entity anchors.
 - `omissions`: important omitted claims and specific editorial reasons. Not every
   unused atomic fact needs a reason; the reviewer independently checks omissions.
+
+`resume.summary` and `evidence_links.summary` are unsupported and rejected,
+including empty values. Remove both from older editable drafts and place important
+supported facts in the appropriate experience or skills fields. Original sources,
+candidate evidence and accepted historical resumes remain intact. The displayed
+resume starts with experience after the contact header; there is no optional
+Summary section.
 
 `schema_version: 2` and `context_id` are generated metadata. An optional
 `candidate_id` must match the cache. Reload/rebind after facts, preferences or
@@ -48,7 +55,6 @@ conflicts change; replacing a fingerprint without checking evidence is not revie
 ```json
 {
   "name": {"claim_ids": ["SELECTED DISPLAY NAME CLAIM"]},
-  "summary": {"claim_ids": ["EMPLOYMENT CLAIM", "PROJECT CLAIM"]},
   "experience[0]": {"entity_id": "EXACT EMPLOYMENT ID"},
   "experience[0].bullets[0]": {"claim_ids": ["PROJECT CLAIM"]},
   "education[0]": {"entity_id": "EDUCATION ID"},
@@ -64,7 +70,7 @@ rewritten attributes need explicit claims on the correct field/entity.
 
 Employment bullets can combine their own claims and sourced projects explicitly
 owned by that employment ID, not merely a company-name match. Project bullets
-remain on their project. Summary and skills can aggregate different entities.
+remain on their project. Skills can aggregate different entities.
 Grouping titles are presentation metadata supported by their bound items.
 No fixed bullet count, skill-group count, content-fit revision count or language
 self-report is required.

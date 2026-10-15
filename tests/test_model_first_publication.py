@@ -74,7 +74,7 @@ class PublicationTests(unittest.TestCase):
             **self.context,
             "draft_fingerprint": "draft-1",
             "resume_fingerprint": "resume-1",
-            "resume": {"summary": "model prose"},
+            "resume": {"experience": [{"bullets": ["model prose"]}]},
             "target": {
                 "original_jd": "JD",
                 "requirements": [],

@@ -99,7 +99,7 @@ def _validate_target(target: dict) -> None:
 
 def _validate_display(resume: dict) -> None:
     validate_resume_content(resume)
-    unknown = set(resume) - {"name", "contact", "summary", *_SECTIONS}
+    unknown = set(resume) - {"name", "contact", *_SECTIONS}
     if unknown:
         raise ValueError(f"unknown resume display fields: {sorted(unknown)}")
     _text(resume["name"], "resume.name")
@@ -440,7 +440,6 @@ def main() -> int:
                 "resume": {
                     "name": "",
                     "contact": "",
-                    "summary": "",
                     "skills": [],
                     "experience": [],
                     "education": [],

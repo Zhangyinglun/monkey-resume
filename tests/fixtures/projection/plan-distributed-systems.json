@@ -17,20 +17,6 @@
     "content_fit_revision_max": 3
   },
   "clarifications": [],
-  "summary_intent": {
-    "intent_id": "intent-summary",
-    "claim_ids": [
-      "claim-profile-profile-1900eab6c028-997d71ee98b1"
-    ],
-    "capability_ids": [
-      "cap-dist-go",
-      "cap-dist-java",
-      "cap-dist-kafka"
-    ],
-    "operation": "REWORD",
-    "content_intent": "Software engineer building high-throughput distributed APIs and streaming backends.",
-    "target_lines": 1
-  },
   "experience_plans": [
     {
       "entity_id": "experience-example-cloud-software-engineer-2024-c119831455aa",
@@ -233,7 +219,7 @@
     {
       "finding": "bullet_density",
       "status": "accepted",
-      "reason": "Dense 5-bullet summary across 3 roles prioritized for single-page layout."
+      "reason": "Selected contributions across 3 roles prioritized for single-page layout."
     }
   ]
 }

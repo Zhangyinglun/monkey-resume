@@ -21,8 +21,6 @@ from scripts.resume_shared import validate_resume_content  # noqa: E402
 _BULLET_MARKERS = {"•", "·", "-", "(cid:127)"}
 
 _SECTION_HEADERS: dict[str, str] = {
-    "SUMMARY": "summary",
-    "PROFESSIONAL SUMMARY": "summary",
     "PROFESSIONAL EXPERIENCE": "experience",
     "EXPERIENCE": "experience",
     "WORK EXPERIENCE": "experience",

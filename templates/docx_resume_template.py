@@ -137,8 +137,6 @@ def generate_docx(output_file: str, content_dict: dict[str, Any], base_dir: str,
               after=design_tokens.header_space_after, keep=True, leading=design_tokens.header_leading)
     paragraph(content_dict['contact'], design_tokens.contact_font_size, center=True,
               after=design_tokens.contact_space_after, keep=True)
-    heading('SUMMARY')
-    paragraph(content_dict['summary'])
     heading('PROFESSIONAL EXPERIENCE')
     for item in content_dict['experience']:
         row(item.get('company', ''), item.get('dates', ''))

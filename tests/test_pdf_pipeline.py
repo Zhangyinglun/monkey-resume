@@ -72,6 +72,14 @@ class PdfQualityPolicyTests(unittest.TestCase):
 
 
 class PdfRendererTests(unittest.TestCase):
+    def test_old_summary_input_is_rejected_before_creating_artifacts(self) -> None:
+        resume = sample_resume()
+        resume["summary"] = ""
+        with tempfile.TemporaryDirectory() as directory:
+            with self.assertRaisesRegex(ValueError, "summary"):
+                generate_resume("resume.pdf", resume, directory)
+            self.assertEqual(list(Path(directory).iterdir()), [])
+
     def test_renderer_rejects_skill_package_output(self) -> None:
         root = Path(__file__).resolve().parents[1]
         with self.assertRaisesRegex(ValueError, "outside the Skill package"):
@@ -79,7 +87,7 @@ class PdfRendererTests(unittest.TestCase):
 
     def test_renderer_escapes_markup_and_accepts_array_skills(self) -> None:
         resume = sample_resume()
-        resume["summary"] = "Built R&D services with Java Map<K,V> and C++ & C#."
+        resume["experience"][0]["bullets"][0] = "Built R&D services with Java Map<K,V> and C++ & C#."
         with tempfile.TemporaryDirectory() as directory:
             with contextlib.redirect_stdout(io.StringIO()):
                 output = Path(generate_resume("resume.pdf", resume, directory))
@@ -88,8 +96,12 @@ class PdfRendererTests(unittest.TestCase):
             self.assertIn("Map<K,V>", text)
             self.assertIn("R&D", text)
             self.assertIn("Python", text)
+            self.assertNotIn("SUMMARY", text)
             self.assertEqual(len(pdf.pages), 1)
-            self.assertEqual(check_pdf_file(output)["verdict"], "PASS")
+            report = check_pdf_file(output)
+            self.assertEqual(report["verdict"], "PASS")
+            sections = next(c for c in report["checks"] if c["name"] == "section_completeness")
+            self.assertTrue(sections["passed"], sections)
 
 
 if __name__ == "__main__":

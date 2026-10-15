@@ -11,12 +11,10 @@ from scripts.check_content_quality import (
 
 def resume_with(
     experience: list[dict[str, Any]],
-    summary: str = "Backend engineer.",
 ) -> dict[str, Any]:
     return {
         "name": "Alex Chen",
         "contact": "alex@example.com | +1 206-555-0100",
-        "summary": summary,
         "skills": [{"category": "Languages", "items": "Python"}],
         "experience": experience,
         "education": [{"school": "Example", "degree": "B.S.", "dates": "2020"}],

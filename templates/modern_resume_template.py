@@ -363,10 +363,6 @@ def generate_resume(
     story.append(Paragraph(_safe_text(content_dict["name"]), styles["Header"]))
     story.append(Paragraph(_safe_text(content_dict["contact"]), styles["Contact"]))
 
-    # Summary
-    _add_section(story, "SUMMARY", styles, accent, t)
-    story.append(Paragraph(_safe_text(content_dict["summary"]), styles["Body"]))
-
     # Experience
     _add_section(story, "PROFESSIONAL EXPERIENCE", styles, accent, t)
     _render_two_col_items(

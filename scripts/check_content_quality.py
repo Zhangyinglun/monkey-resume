@@ -200,14 +200,12 @@ def run_all_checks(resume: dict[str, Any] | Path) -> list[dict[str, str]]:
         resume = load_json_file(resume)
     validate_resume_content(resume, require_non_empty=True)
     all_bullets = collect_bullets(resume, include_projects=True)
-    prose = [str(resume.get("summary", ""))]
-    prose.extend(all_bullets)
     return [
         check_bullet_length(all_bullets),
         check_bullet_starts_with_verb(all_bullets),
         check_duplicate_phrases(all_bullets),
         check_bullet_density(resume.get("experience", [])),
-        check_resume_language_patterns([text for text in prose if text.strip()]),
+        check_resume_language_patterns([text for text in all_bullets if text.strip()]),
     ]
 
 

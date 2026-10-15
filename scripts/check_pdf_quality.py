@@ -29,7 +29,6 @@ A4_HEIGHT_MM = 297.0
 A4_TOLERANCE_MM = 1.0
 
 SECTION_KEYWORDS = {
-    "Summary": ("SUMMARY", "PROFESSIONAL SUMMARY"),
     "Skills": ("SKILLS", "TECHNICAL SKILLS"),
     "Experience": ("EXPERIENCE", "PROFESSIONAL EXPERIENCE", "WORK EXPERIENCE"),
     "Education": ("EDUCATION",),
@@ -362,7 +361,7 @@ def _format_text_report(report: dict[str, Any], pdf_name: str, args: argparse.Na
     sc = checks["section_completeness"]
     if sc["passed"]:
         lines.append(
-            "9. Section Completeness: \u2713 Summary/Skills/Experience/Education all identified"
+            "9. Section Completeness: \u2713 Skills/Experience/Education all identified"
         )
     else:
         lines.append(

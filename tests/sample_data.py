@@ -9,7 +9,6 @@ def sample_resume(*, invalid: bool = False) -> dict[str, Any]:
     return {
         "name": "[Company]" if invalid else "Alex Chen",
         "contact": "missing" if invalid else "Seattle | alex@example.org",
-        "summary": "Backend engineer building distributed systems and cloud services.",
         "skills": [{"category": "Development", "items": ["Python", "Go"]}],
         "experience": [
             {

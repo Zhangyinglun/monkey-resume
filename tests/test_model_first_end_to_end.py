@@ -89,7 +89,6 @@ def ingest_notes(root: Path) -> tuple[Path, dict, dict]:
         "resume": {
             "name": "Alex Chen",
             "contact": "alex@example.org",
-            "summary": "Engineer building Python message queue recovery tools.",
             "skills": [{"category": "Development", "items": ["Python"]}],
             "experience": [
                 {
@@ -106,7 +105,6 @@ def ingest_notes(root: Path) -> tuple[Path, dict, dict]:
         "evidence_links": {
             "name": {"claim_ids": [claims["name"]]},
             "contact": {"claim_ids": [claims["contact"]]},
-            "summary": {"claim_ids": [claims["work"]]},
             "skills[0].items[0]": {"claim_ids": [claims["work"]]},
             "experience[0]": {"entity_id": ids["employment"]},
             "experience[0].bullets[0]": {"claim_ids": [claims["work"]]},

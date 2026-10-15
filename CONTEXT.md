@@ -54,7 +54,9 @@ language, without expanding tools, scope, outcomes or personal ownership.
 requirements, complete display resume, evidence links and important omissions.
 
 **Tailored Resume**: the draft's recruiter-facing display content, without internal
-IDs. Summary and skills may aggregate evidence; project assertions retain scope.
+IDs. Professional positioning is expressed through experience and skills; skills
+may aggregate evidence and project assertions retain scope. Summary is not a
+supported display section or field.
 
 **Omission**: an important unused contribution with a specific editorial reason.
 Unlisted unused facts remain available to independent review.

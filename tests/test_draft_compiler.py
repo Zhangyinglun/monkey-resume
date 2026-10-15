@@ -93,8 +93,9 @@ def fixture() -> tuple[dict, dict]:
         "resume": {
             "name": "Correct Name",
             "contact": "a@example.test",
-            "summary": "Built services and led platforms",
-            "skills": [{"category": "Languages", "items": ["Python"]}],
+            "skills": [
+                {"category": "Development", "items": ["Python", "Service development"]}
+            ],
             "experience": [
                 {
                     "company": "Same Corp",
@@ -109,8 +110,8 @@ def fixture() -> tuple[dict, dict]:
         "evidence_links": {
             "name": {"claim_ids": ["person-name"]},
             "contact": {"claim_ids": ["person-contact"]},
-            "summary": {"claim_ids": ["job1-work", "job2-work"]},
             "skills[0].items[0]": {"claim_ids": ["skill-tool"]},
+            "skills[0].items[1]": {"claim_ids": ["job1-work", "job2-work"]},
             "experience[0]": {"entity_id": "job2"},
             "experience[0].bullets[0]": {"claim_ids": ["proj-work"]},
             "education[0]": {"entity_id": "edu"},
@@ -123,6 +124,28 @@ def fixture() -> tuple[dict, dict]:
 
 
 class DraftCompilerTests(unittest.TestCase):
+    def test_removed_summary_field_and_dangling_binding_are_rejected(self) -> None:
+        for value in ("Old profile", "", None):
+            draft, context = fixture()
+            draft["resume"]["summary"] = value
+            with self.subTest(value=value), self.assertRaisesRegex(ValueError, "summary"):
+                compile_draft(draft, context)
+        draft, context = fixture()
+        draft["evidence_links"]["summary"] = {"claim_ids": ["job1-work"]}
+        with self.assertRaisesRegex(ValueError, "unknown display paths.*summary"):
+            compile_draft(draft, context)
+
+    def test_facts_previously_used_in_summary_remain_available_for_review(self) -> None:
+        draft, context = fixture()
+        draft["resume"]["skills"][0]["items"].pop()
+        draft["evidence_links"].pop("skills[0].items[1]")
+        before = copy.deepcopy(context)
+        result = compile_draft(draft, context)
+        self.assertEqual(context, before)
+        self.assertNotIn("summary", result["resume"])
+        self.assertIn("job1-work", result["manifest"]["unused_claim_ids"])
+        self.assertIn("job2-work", result["manifest"]["unused_claim_ids"])
+
     def test_malformed_requirement_priority_has_a_descriptive_validation_error(self) -> None:
         from scripts.audit_factual_integrity import audit_draft
 
@@ -146,9 +169,10 @@ class DraftCompilerTests(unittest.TestCase):
         draft, context = fixture()
         result = compile_draft(draft, context)
         comparison = next(
-            row for row in result["text_changes"] if row["projection_path"] == "summary"
+            row for row in result["text_changes"]
+            if row["projection_path"] == "experience[0].bullets[0]"
         )
-        self.assertEqual(comparison["rendered_text"], draft["resume"]["summary"])
+        self.assertEqual(comparison["rendered_text"], draft["resume"]["experience"][0]["bullets"][0])
         self.assertTrue(comparison["comparisons"])
         self.assertTrue(
             all("source_claim_id" in item and "diff" in item for item in comparison["comparisons"])
@@ -173,7 +197,7 @@ class DraftCompilerTests(unittest.TestCase):
         self.assertEqual(result["audit_scope"], "traceability_only")
         self.assertTrue(result["semantic_review_required"])
         entries = {e["projection_path"]: e for e in result["manifest"]["entries"]}
-        self.assertEqual(entries["summary"]["entity_ids"], ["job1", "job2"])
+        self.assertEqual(entries["skills[0].items[1]"]["entity_ids"], ["job1", "job2"])
         self.assertEqual(entries["experience[0].bullets[0]"]["relationship_ids"], ["owns"])
         self.assertEqual(entries["education[0].school"]["source_claim_ids"], ["edu-school"])
         self.assertEqual(entries["skills[0].category"]["binding_mode"], "presentation")
@@ -212,8 +236,11 @@ class DraftCompilerTests(unittest.TestCase):
             (lambda d, c: d.update(context_id="sha256:old"), "stale"),
             (lambda d, c: d.update(schema_version=1), "schema_version"),
             (lambda d, c: c.update(schema_version=1), "schema_version"),
-            (lambda d, c: d["evidence_links"].pop("summary"), "unbound"),
-            (lambda d, c: d["evidence_links"]["summary"].update(claim_ids=["unknown"]), "unknown"),
+            (lambda d, c: d["evidence_links"].pop("skills[0].items[1]"), "unbound"),
+            (
+                lambda d, c: d["evidence_links"]["skills[0].items[1]"].update(claim_ids=["unknown"]),
+                "unknown",
+            ),
             (
                 lambda d, c: c["ledger"]["entities"][1]["claims"][-1].update(status="revoked"),
                 "inactive",
@@ -283,6 +310,7 @@ class DraftCompilerTests(unittest.TestCase):
                 ):
                     self.assertEqual(main(), 0)
                 initialized = json.loads(output.read_text(encoding="utf-8"))
+                self.assertNotIn("summary", initialized["resume"])
                 self.assertEqual(
                     initialized["target"]["original_jd"], jd.read_text(encoding="utf-8")
                 )

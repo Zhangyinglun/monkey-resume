@@ -4,19 +4,6 @@
   "target_jd_fingerprint": "",
   "items": [
     {
-      "intent_id": "intent-summary",
-      "source_claim_ids": [
-        "claim-profile-profile-1900eab6c028-997d71ee98b1"
-      ],
-      "rendered_text": "Software engineer building high-throughput distributed APIs and streaming backends.",
-      "meaning_check": {
-        "facts_added": [],
-        "facts_removed": [],
-        "metrics_changed": [],
-        "ownership_changed": false
-      }
-    },
-    {
       "intent_id": "intent-cloud-bullet-1",
       "source_claim_ids": [
         "claim-experience-example-cloud-software-en-8eb9c78240c8"

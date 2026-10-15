@@ -40,7 +40,7 @@ actual rendering rather than imposing a verb dictionary or word-count quota.
    additional sentence within it with a verb describing the candidate's action,
    such as “Built,” “Diagnosed” or “Led.” Attach a result as a clause of that action
    rather than a separate sentence beginning with a metric or “The platform.”
-   Headers, summary and skill labels are not experience sentences and need not
+   Headers and skill labels are not experience sentences and need not
    follow this pattern. Choose the right verb, not one from a fixed approved list.
 5. **Name recognizable products directly.** Use a well-known product/platform
    name when the evidence establishes it, rather than an anonymous description.
@@ -84,11 +84,10 @@ Apply these as editing guidance, not keyword bans or mechanical style quotas.
 Judge whether the reader can identify the contribution, mechanism and result;
 do not flag a standard technical term merely because it appears in a cliché list.
 
-## JD-driven summary and ordering
+## JD-driven positioning and ordering
 
-Rewrite the summary from the JD and the strongest supported capabilities. Give
-the reader a professional position and relevant contribution, rather than merely
-listing familiar tools. Use evidence from different jobs when appropriate.
+Communicate professional positioning through relevant contributions in experience
+and supported skills. Follow the display fields in `resume-working-schema.md`.
 
 Keep employers in chronological order; sort related contributions inside each
 job. Include relevant transferable work even if its original terminology differs

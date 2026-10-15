@@ -18,7 +18,8 @@ entities using existing identity and evidence, not a display heading alone.
 
 Use the original JD and complete valid cache. Identify core needs, match actual
 work, then write a clear one-page professional resume. Put relevant contributions
-first within each job, rewrite summary, and organize supported skills. Preserve
+first within each job and organize supported skills to communicate professional
+positioning. Use only the display fields in `resume-working-schema.md`. Preserve
 scope and explain internal system purposes. Read and apply all five required rules
 in `resume-language-quality.md` before writing; consolidate only details belonging
 to the same contribution. Compress secondary detail and justify

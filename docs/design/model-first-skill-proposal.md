@@ -1,5 +1,9 @@
 # MonkeyResume：模型主导流程提案
 
+当前简历展示契约已移除 Summary；本文相关描述仅保留历史语境。
+以 [`../../references/resume-working-schema.md`](../../references/resume-working-schema.md)
+为当前字段和行为准则。
+
 状态：保留的讨论与评估草案。新接口已实施；当前执行入口是
 [`../../SKILL.md`](../../SKILL.md)，实际验证见
 [`../validation/model-first-workflow.md`](../validation/model-first-workflow.md)。

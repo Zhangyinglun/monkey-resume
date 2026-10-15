@@ -24,6 +24,21 @@ from tests.sample_data import sample_resume
 
 
 class DocxTemplateTests(unittest.TestCase):
+    def test_contact_is_immediately_followed_by_experience(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            doc = Document(generate_docx("resume.docx", sample_resume(), directory))
+        self.assertEqual(doc.paragraphs[2].text, "PROFESSIONAL EXPERIENCE")
+        self.assertNotIn("SUMMARY", [p.text for p in doc.paragraphs])
+        self.assertTrue(all(p.text.strip() for p in doc.paragraphs[:4]))
+
+    def test_old_summary_input_is_rejected_before_creating_artifacts(self) -> None:
+        resume = sample_resume()
+        resume["summary"] = ""
+        with tempfile.TemporaryDirectory() as directory:
+            with self.assertRaisesRegex(ValueError, "summary"):
+                generate_docx("resume.docx", resume, directory)
+            self.assertEqual(list(Path(directory).iterdir()), [])
+
     def test_approved_readable_defaults(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             doc = Document(generate_docx("default.docx", sample_resume(), directory))
@@ -35,7 +50,7 @@ class DocxTemplateTests(unittest.TestCase):
 
     def test_explicit_layout_and_plain_text_roundtrip(self) -> None:
         resume = sample_resume()
-        resume["summary"] = "Built R&D services with Java Map<K,V> and C++ & C#."
+        resume["experience"][0]["bullets"][0] = "Built R&D services with Java Map<K,V> and C++ & C#."
         before = copy.deepcopy(resume)
         layout = LayoutSettings(font_size_scale=1.0, margin_side_inch=0.75)
         with tempfile.TemporaryDirectory() as directory:
@@ -43,7 +58,7 @@ class DocxTemplateTests(unittest.TestCase):
             doc = Document(path)
             self.assertEqual(doc.styles["Normal"].font.size.pt, 9.5)
             self.assertAlmostEqual(doc.sections[0].left_margin.mm, 19.05)
-            self.assertIn(resume["summary"], extract_docx_text(path))
+            self.assertIn(resume["experience"][0]["bullets"][0], extract_docx_text(path))
         self.assertEqual(resume, before)
 
     def test_line_height_changes_spacing_not_content(self) -> None:
@@ -60,7 +75,7 @@ class DocxTemplateTests(unittest.TestCase):
                 )
                 texts.append(extract_docx_text(path))
                 paragraph = next(
-                    p for p in Document(path).paragraphs if p.text.startswith("Backend engineer")
+                    p for p in Document(path).paragraphs if p.text.startswith("• Built distributed")
                 )
                 spacings.append(paragraph.paragraph_format.line_spacing.pt)
             self.assertEqual(len(set(texts)), 1)

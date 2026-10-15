@@ -1,5 +1,9 @@
 # MonkeyResume 模型主导重设计：实施方案
 
+当前简历展示契约已移除 Summary；本文相关描述仅保留历史语境。
+以 [`../../references/resume-working-schema.md`](../../references/resume-working-schema.md)
+为当前字段和行为准则。
+
 状态：方案已获授权并完成仓库实现；实际检查与限制见
 [`../validation/model-first-workflow.md`](../validation/model-first-workflow.md)。
 以下保留规划阶段的决策与实施顺序；个人工作区未迁移。
