@@ -15,9 +15,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import shutil
 import sys
-import tempfile
 from dataclasses import replace
 from pathlib import Path
 from typing import Any
@@ -27,9 +25,13 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+from scripts.accepted_resume_publication import (  # noqa: E402
+    commit_accepted_resume,
+    validate_output_name,
+)
 from scripts.check_pdf_quality import check_pdf_file  # noqa: E402
 from scripts.layout_auto_tuner import auto_fit_layout  # noqa: E402
-from scripts.resume_history_manager import register_generation, validate_job_url  # noqa: E402
+from scripts.resume_history_manager import validate_job_url  # noqa: E402
 from scripts.resume_shared import add_workspace_argument, load_json_file  # noqa: E402
 from templates.docx_resume_template import generate_resume, rendering_environment  # noqa: E402
 from templates.layout_settings import LayoutSettings
@@ -83,18 +85,6 @@ def _directory(workspace: Path, name: str) -> Path:
     return path
 
 
-def _filename(name: str) -> str:
-    if (
-        not isinstance(name, str)
-        or Path(name).name != name
-        or "\\" in name
-        or any(ord(c) < 32 or ord(c) == 127 for c in name)
-        or Path(name).suffix.lower() not in {".docx", ".pdf"}
-    ):
-        raise ValueError("Output must be a safe .docx or .pdf filename, not a path.")
-    return name
-
-
 def _qa_passes(report: dict) -> bool:
     checks = report.get("checks", [])
     by_name = {c.get("name"): c for c in checks if isinstance(c, dict)}
@@ -133,7 +123,7 @@ def prepare_candidate(
     profile = get_style(style)
     layout = profile.resolve_layout(layout)
     workspace = validate_workspace(workspace)
-    _filename(output_name)
+    validate_output_name(output_name)
     if max_trials <= 0:
         raise ValueError("max_trials must be positive.")
     if not isinstance(author_id, str):
@@ -360,7 +350,7 @@ def publish_candidate(
     """Recompile against current cache under lock and transactionally accept artifacts."""
     workspace = validate_workspace(workspace)
     if output_name is not None:
-        _filename(output_name)
+        validate_output_name(output_name)
     if output_format not in {"docx", "pdf", "both"}:
         raise ValueError("output_format must be docx, pdf or both.")
     try:
@@ -382,7 +372,7 @@ def publish_candidate(
         record = load_json_file(record_path)
         if record.get("schema_version") != 2 or record.get("candidate_id") != candidate_id:
             raise ValueError("Invalid candidate record version or ID.")
-        output_name = _filename(output_name or record["output_name"])
+        output_name = validate_output_name(output_name or record["output_name"])
         for name, field in (("draft.json", "draft_sha256"), ("compiled.json", "compiled_sha256")):
             if _sha(directory / name) != record[field]:
                 raise ValueError(f"Frozen candidate changed: {name}")
@@ -398,7 +388,7 @@ def publish_candidate(
         for key in ("context_id", "draft_fingerprint", "resume_fingerprint", "target"):
             if compiled.get(key) != record[key]:
                 raise ValueError(f"Candidate compilation binding mismatch: {key}")
-        pdf = directory / Path(_filename(record["output_name"])).with_suffix(".pdf")
+        pdf = directory / Path(validate_output_name(record["output_name"])).with_suffix(".pdf")
         docx = pdf.with_suffix(".docx")
         if (
             record.get("render_error")
@@ -413,84 +403,20 @@ def publish_candidate(
         qa = check_pdf_file(pdf, minimum_font_pt=record.get("style", {}).get("minimum_font_pt", 8.5))
         if not _qa_passes(qa):
             raise ReviewNotReady("Actual PDF must pass one-page A4 and readable geometry QA.")
-        output = _directory(workspace, "resume_output")
-        output.mkdir(parents=True, exist_ok=True)
-        with tempfile.TemporaryDirectory(prefix=".publication-", dir=workspace) as staging:
-            stage = Path(staging)
-            staged_pdf = stage / "resume.pdf"
-            shutil.copyfile(pdf, staged_pdf)
-            shutil.copyfile(docx, staged_pdf.with_suffix(".docx"))
-            # Bind QA to exact staged bytes; original candidate artifacts remain intact.
-            for ext in (".pdf", ".docx"):
-                if _sha(staged_pdf.with_suffix(ext)) != record[ext[1:] + "_sha256"]:
-                    raise ValueError("Artifact changed during publication staging.")
-            extensions = (".docx", ".pdf") if output_format == "both" else ("." + output_format,)
-            destinations = {
-                ext: output / Path(output_name).with_suffix(ext) for ext in (".docx", ".pdf")
-            }
-            target = record["target"]
-            with register_generation(
-                workspace,
-                staged_pdf,
-                target.get("company", ""),
-                target.get("role", ""),
-                target.get("job_url", ""),
-            ) as historical:
-                _write(historical.parent / "review.json", review)
-                _write(historical.parent / "candidate-record.json", record)
-                _publish_candidates(
-                    output,
-                    output_name,
-                    [staged_pdf.with_suffix(ext) for ext in extensions],
-                    destinations,
-                )
+        committed = commit_accepted_resume(
+            workspace,
+            pdf,
+            record,
+            review,
+            output_name=output_name,
+            output_format=output_format,
+        )
         return {
             "status": "published",
             "candidate_id": candidate_id,
-            "outputs": [str(destinations[ext]) for ext in extensions],
-            "historical_pdf": str(historical),
-            "history_index": str(workspace / "resume_history" / "index.html"),
+            **committed,
             "physical_qa": qa,
         }
-
-
-def _publish_candidates(
-    output_dir: Path, output_name: str, candidates: list[Path], destinations: dict[str, Path]
-) -> None:
-    """Publish requested pair and retire counterpart; roll back filesystem failures."""
-    journal: list[tuple[Path, Path]] = []
-    published: list[Path] = []
-    try:
-        backup_dir = output_dir / "backup" / "Uncategorized"
-        if backup_dir.resolve() != backup_dir:
-            raise ValueError("Unsafe backup directory.")
-        archive_targets = [
-            path
-            for path in output_dir.iterdir()
-            if path.stem == Path(output_name).stem and path.suffix.casefold() in (".docx", ".pdf")
-        ]
-        for target in archive_targets:
-            if target.is_symlink():
-                raise ValueError("Accepted outputs must not be symlinks.")
-            if target.exists():
-                backup_dir.mkdir(parents=True, exist_ok=True)
-                n = 1
-                backup = backup_dir / f"{target.stem}_old_{n}{target.suffix}"
-                while backup.exists():
-                    n += 1
-                    backup = backup_dir / f"{target.stem}_old_{n}{target.suffix}"
-                target.replace(backup)
-                journal.append((backup, target))
-        for source in candidates:
-            target = destinations[source.suffix]
-            source.replace(target)
-            published.append(target)
-    except Exception:
-        for target in published:
-            target.unlink(missing_ok=True)
-        for backup, target in reversed(journal):
-            backup.replace(target)
-        raise
 
 
 def parse_args() -> argparse.Namespace:

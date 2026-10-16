@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import tempfile
 import unittest
@@ -7,19 +8,34 @@ from pathlib import Path
 from unittest import mock
 
 from scripts import resume_history_manager as history
+from scripts.accepted_resume_publication import commit_accepted_resume
 
 
 class ResumeHistoryManagerTests(unittest.TestCase):
+    def publish(
+        self, workspace: Path, pdf: Path, company: str = "", role: str = ""
+    ) -> Path:
+        docx = pdf.with_suffix(".docx")
+        docx.write_bytes(b"synthetic DOCX")
+        record = {
+            "target": {"company": company, "role": role},
+            "pdf_sha256": hashlib.sha256(pdf.read_bytes()).hexdigest(),
+            "docx_sha256": hashlib.sha256(docx.read_bytes()).hexdigest(),
+        }
+        result = commit_accepted_resume(
+            workspace, pdf, record, {"purpose": "synthetic transaction fixture"},
+            output_name="resume.docx", output_format="docx",
+        )
+        return Path(result["historical_pdf"])
+
     def test_repeated_records_keep_stable_pdf_links_and_url_backfill(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             workspace = Path(directory)
             pdf = workspace / "candidate.pdf"
             pdf.write_bytes(b"first")
-            with history.register_generation(workspace, pdf, '<script>&"', "Engineer", "") as first:
-                pass
+            first = self.publish(workspace, pdf, '<script>&"', "Engineer")
             pdf.write_bytes(b"second")
-            with history.register_generation(workspace, pdf, "Same", "Engineer", "") as second:
-                pass
+            second = self.publish(workspace, pdf, "Same", "Engineer")
             self.assertNotEqual(first, second)
             self.assertEqual(first.read_bytes(), b"first")
             previous = json.loads((first.parent / "record.json").read_text())
@@ -57,44 +73,12 @@ class ResumeHistoryManagerTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 history.history_path(workspace)
 
-    def test_publication_failure_restores_index_and_removes_new_record(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            workspace = Path(directory)
-            pdf = workspace / "candidate.pdf"
-            pdf.write_bytes(b"accepted")
-            with history.register_generation(workspace, pdf, "", "", ""):
-                pass
-            root = history.history_path(workspace)
-            before = (root / "index.html").read_bytes()
-            with self.assertRaisesRegex(OSError, "publication"):
-                with history.register_generation(workspace, pdf, "", "", ""):
-                    raise OSError("publication failed")
-            self.assertEqual((root / "index.html").read_bytes(), before)
-            self.assertEqual(len(history.read_records(root)), 1)
-            self.assertFalse((root / ".lock").exists())
-
-    def test_copy_or_index_failure_does_not_leave_record(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            workspace = Path(directory)
-            pdf = workspace / "candidate.pdf"
-            pdf.write_bytes(b"candidate")
-            for target in ("shutil.copyfile", "atomic_text"):
-                with self.subTest(target=target):
-                    with mock.patch(
-                        f"scripts.resume_history_manager.{target}", side_effect=OSError("disk")
-                    ):
-                        with self.assertRaises(OSError):
-                            with history.register_generation(workspace, pdf, "", "", ""):
-                                self.fail("must not publish")
-                    self.assertEqual(history.read_records(history.history_path(workspace)), [])
-
     def test_url_update_index_failure_restores_metadata(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             workspace = Path(directory)
             pdf = workspace / "candidate.pdf"
             pdf.write_bytes(b"candidate")
-            with history.register_generation(workspace, pdf, "", "", "") as archived:
-                pass
+            archived = self.publish(workspace, pdf)
             original = history.atomic_text
 
             def fail_index(path: Path, text: str) -> None:

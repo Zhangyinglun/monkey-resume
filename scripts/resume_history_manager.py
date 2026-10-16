@@ -5,16 +5,13 @@ from __future__ import annotations
 import argparse
 import json
 import re
-import shutil
 import sys
 import tempfile
 from contextlib import contextmanager
-from datetime import datetime, timezone
 from html import escape
 from pathlib import Path
 from typing import Iterator
 from urllib.parse import urlsplit
-from uuid import uuid4
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
@@ -115,36 +112,6 @@ small,time{font-family:monospace;overflow-wrap:anywhere}small{font-size:11px}
 <div class="table-wrap"><table><caption>已通过自动校验的历史简历</caption>
 <thead><tr><th scope="col">公司</th><th scope="col">岗位名称</th><th scope="col">岗位链接</th><th scope="col">生成时间 (UTC)</th><th scope="col">简历</th></tr></thead>
 <tbody>''' + body + '</tbody></table></div></main></body></html>\n'
-
-
-@contextmanager
-def register_generation(workspace: Path, pdf: Path, company: str, job_title: str,
-                        job_url: str) -> Iterator[Path]:
-    """Register only a QA-passed candidate; roll back if publication fails."""
-    root = history_path(workspace)
-    job_url = validate_job_url(job_url)
-    with history_lock(root):
-        records = read_records(root)
-        record_id = "generation-" + uuid4().hex
-        record = dict(record_id=record_id, company=company.strip(), job_title=job_title.strip(),
-                      job_url=job_url, generated_at=datetime.now(timezone.utc).isoformat())
-        directory = root / record_id
-        index = root / "index.html"
-        previous_index = index.read_text(encoding="utf-8") if index.exists() else None
-        directory.mkdir()
-        try:
-            shutil.copyfile(pdf, directory / "resume.pdf")
-            (directory / "resume.pdf").chmod(0o444)
-            atomic_text(directory / "record.json", json.dumps(record, ensure_ascii=False, indent=2))
-            atomic_text(index, render_directory([record, *records]))
-            yield directory / "resume.pdf"
-        except Exception:
-            shutil.rmtree(directory)
-            if previous_index is None:
-                index.unlink(missing_ok=True)
-            else:
-                atomic_text(index, previous_index)
-            raise
 
 
 def update_job_url(workspace: Path, record_id: str, job_url: str) -> Path:
