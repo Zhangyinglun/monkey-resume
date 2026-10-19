@@ -1,68 +1,68 @@
-# Arial professional-v3 validation (2026-10-19)
+# Current-only Arial workflow validation (2026-10-19)
 
-Specification: [Issue #13](https://github.com/Zhangyinglun/monkey-resume/issues/13).
+## Supported contract
 
-## Local environment and checks
+Only the current model-led cache, draft, review and publication contracts and
+`professional-v3` Arial style are supported. Retired styles, comma-delimited
+skills, independent ReportLab output and old candidate metadata are rejected or
+removed. Prior implementation documents and fixtures are available in Git history,
+not shipped as supported examples. External personal evidence and accepted
+artifacts were not modified by this cleanup.
 
-The configured project environment uses Python 3.12, python-docx 1.2.0,
-LibreOffice Writer 26.8.1.1, Poppler 26.09.0 and installed macOS Arial faces.
-Fonts are resolved locally and provided only to the conversion process; this
-package does not distribute Arial or change global font configuration.
+## Local checks
 
-- Full unittest discovery: **151 tests passed, zero skips**.
-- Ruff, Python compilation, dependency consistency, Skill validation and
-  `git diff --check`: passed.
-- Regression tests reject missing required fonts and actual converter font
-  substitution, including a converter that emits only the regular face even
-  though both regular and bold are installed. A new publication font failure preserves accepted files and the
-  previous generation's history.
-- The real cache/render/review-gate/history integration tests also passed with
-  `MONKEY_RESUME_TEST_STYLE=professional-v2`, covering the CI rendering selection.
+Environment: Python 3.12.14, python-docx 1.2.0, LibreOffice Writer 26.8.1.1,
+Poppler 26.09.0 and actual installed macOS Arial faces. Arial is separately
+licensed and is not distributed by this package. Font paths and Fontconfig
+settings are local to each conversion process.
 
-The initial Arial regression reproduced an actual Liberation Sans substitution
-despite installed Arial. The passing run supplies process-local font paths and
-checks the rendered characters' font names against the selected font family.
+- Full unittest discovery: **146 tests passed, zero skips**.
+- After simplifying the content bullet collector, all six content-check tests
+  passed again.
+- Ruff, Skill validation and `git diff --check`: passed.
+- Independent read-only review: no blocking findings.
+- Tests reject retired styles and old/missing style metadata at publication,
+  preserve accepted artifacts on failure, and reject missing fonts, substitution
+  and converter output containing only the regular face.
 
-## Synthetic document evidence
+Real LibreOffice conversion fails inside the local execution sandbox. The
+complete passing suite and rendering comparisons were run outside that sandbox;
+no rendering failure was suppressed or converted into a passing test.
 
-Run the reproducible preview outside the repository:
+## Reproducible synthetic rendering
 
 ```bash
 source .venv/bin/activate
 python scripts/preview_resume_styles.py --output-dir /absolute/external/new-directory
 ```
 
-| Style | Actual rendered text fonts | Pages | Physical QA | Independent DOCX preview |
-|---|---|---|---|---|
-| professional-v3 | ArialMT, Arial-BoldMT | 1 A4 | PASS | Pixel-identical |
-| professional-v2 | Carlito-Regular, Carlito-Bold | 1 A4 | PASS | Pixel-identical |
-| legacy-v1 | Carlito-Regular, Carlito-Bold | 1 A4 | PASS | Pixel-identical |
+The preview uses wholly fictional `examples/synthetic_resume.json`. Its DOCX,
+internal QA PDF, independent previews, page images and `preview.json` remain
+outside the Skill repository. It is not an Accepted Resume or an independent
+review of actual candidate claims.
 
-The v3 page was visually inspected: company/date alignment, heading hierarchy,
-links, indentation and all text are readable without clipping or overlap. All
-11 bullet final lines exceed half their available text width; the shortest is
-76.2%. The new independent-preview wrapper uses the same actual font family as
-the main conversion while keeping the vendored renderer unchanged.
+| Check | Result |
+|---|---|
+| Actual rendered text fonts | ArialMT and Arial-BoldMT |
+| Pages | One A4 page |
+| Physical QA | PASS |
+| Independent DOCX preview versus same-source PDF | Pixel-identical |
+| Current page versus pre-cleanup `526c71b` professional-v3 | Pixel-identical at 144 DPI (1191 x 1684 pixels) |
+| Actual page visual inspection | Readable; no clipping, overlap or company/date misalignment |
 
-A second actual v3 sample used a long company name and
-`September 2020 - September 2026`. The complete date moves to its own
-right-aligned line below the company. Measured coordinates show no overlap;
-the sample remains one A4 page and passes physical QA. Its page was also
-visually inspected. No personal candidate cache or Accepted Resume was changed.
-
-The preview's DOCX, internal QA PDF, page images, font hashes and comparison
-report remain outside the Skill repository. These fictional examples are design
-previews, not Accepted Resumes or evidence of an actual independent resume review.
+Long heading/date handling, actual Arial faces, true overflow and the real
+cache-to-render-to-publication/history path are covered by passing integration
+tests. A passing layout is preserved; auto-fit changes formatting only and keeps
+the current readability floor and caller margins.
 
 ## Coverage boundaries
 
-The user owns cross-software testing. Microsoft Word, Google Docs, Apple Pages
-and other readers have **not** been certified by these local checks. Record
-software/version and observed pagination, alignment, wrapping and clipping when
-the user supplies those results; do not infer them from local preview equality.
+The edited remote CI workflow has not been run. It uses Python 3.11/3.12 and
+only the current Arial workflow. Actual rendering explicitly skips where
+separately licensed Arial is unavailable; portable DOCX structure and missing-font
+failure checks still run. Such skips are unavailable coverage, not an Arial pass.
 
-The Linux CI configuration intentionally uses the installed Carlito profile for
-real rendering and explicitly reports unavailable actual-Arial coverage as a
-skip. Missing-font failure and portable DOCX structure tests still run. Arial
-is separately installed where licensed; a replacement font is not an Arial pass.
-The edited remote CI workflow has not been run as part of this local validation.
+Microsoft Word, Google Docs and Apple Pages were not tested in this cleanup.
+Local LibreOffice/font comparisons do not certify those readers. Record their
+software versions and observed page count, alignment, wrapping and clipping
+separately when the user supplies results.

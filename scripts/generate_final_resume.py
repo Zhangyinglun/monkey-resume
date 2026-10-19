@@ -172,8 +172,7 @@ def prepare_candidate(
             ).resolve()
             if rendered != pdf:
                 raise ValueError("Renderer returned an unexpected artifact path.")
-            if style == "professional-v3":
-                font_verification = validate_pdf_fonts(pdf, profile.font_family)
+            font_verification = validate_pdf_fonts(pdf, profile.font_family)
             qa = check_pdf_file(pdf, minimum_font_pt=profile.minimum_font_pt)
         except Exception as exc:  # Preserve failed candidates for host feedback.
             error = str(exc)
@@ -405,12 +404,20 @@ def publish_candidate(
             if _sha(artifact) != record[artifact.suffix[1:] + "_sha256"]:
                 raise ValueError("Actual candidate artifact changed after review.")
         _validate_review(review, record)
-        if record.get("style", {}).get("name") == "professional-v3":
-            try:
-                validate_pdf_fonts(pdf, record["style"]["font_family"])
-            except (OSError, RuntimeError) as exc:
-                raise ReviewNotReady(str(exc)) from exc
-        qa = check_pdf_file(pdf, minimum_font_pt=record.get("style", {}).get("minimum_font_pt", 8.5))
+        profile = get_style()
+        try:
+            stored_style = record["style"]
+            layout = profile.resolve_layout(LayoutSettings(**stored_style["layout"]))
+            current_style = json.loads(json.dumps(profile.snapshot(layout)))
+        except (KeyError, TypeError, ValueError) as exc:
+            raise ReviewNotReady("Unsupported candidate style; prepare a new candidate.") from exc
+        if stored_style != current_style:
+            raise ReviewNotReady("Unsupported candidate style; prepare a new candidate.")
+        try:
+            validate_pdf_fonts(pdf, profile.font_family)
+        except (OSError, RuntimeError) as exc:
+            raise ReviewNotReady(str(exc)) from exc
+        qa = check_pdf_file(pdf, minimum_font_pt=profile.minimum_font_pt)
         if not _qa_passes(qa):
             raise ReviewNotReady("Actual PDF must pass one-page A4 and readable geometry QA.")
         committed = commit_accepted_resume(

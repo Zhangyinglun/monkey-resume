@@ -131,5 +131,5 @@ IDs, added/existing/superseded counts, unresolved conflicts and unparsed blocks.
 important unparsed text and account for it before claiming the cache is complete.
 
 Old-schema caches are not loaded by this workflow. Use a deliberately new external
-workspace or a separately authorized one-time migration; never delete the old
+workspace; migration is outside the runtime contract. Never delete the old
 candidate cache or accepted history to silence a schema error.

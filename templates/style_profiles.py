@@ -1,4 +1,4 @@
-"""Versioned presentation defaults and bounds for the DOCX renderer."""
+"""Current presentation defaults and bounds for the DOCX renderer."""
 from __future__ import annotations
 
 import math
@@ -6,7 +6,7 @@ from dataclasses import asdict, dataclass, replace
 from typing import Any
 
 from templates.design_tokens import DEFAULT_TOKENS, DesignTokens
-from templates.layout_settings import DOCX_DEFAULT_SETTINGS, LayoutSettings
+from templates.layout_settings import LayoutSettings
 
 DEFAULT_STYLE = "professional-v3"
 
@@ -17,29 +17,17 @@ class StyleProfile:
     version: int
     tokens: DesignTokens
     layout: LayoutSettings
-    font_family: str = "Carlito"
-    justify_body: bool = False
-    short_headings: bool = True
+    font_family: str = "Arial"
     minimum_font_pt: float = 10.5
     minimum_margin_mm: float = 12.7
 
     def heading(self, title: str) -> str:
-        if not self.short_headings:
-            return title
         return {"PROFESSIONAL EXPERIENCE": "Experience", "TECHNICAL SKILLS": "Skills"}.get(
             title, title.title()
         )
 
     def resolve_layout(self, layout: LayoutSettings | None = None) -> LayoutSettings:
         resolved = layout or self.layout
-        if self.name != "legacy-v1" and resolved.compact_mode:
-            resolved = replace(
-                resolved,
-                font_size_scale=10.5 / 11.0 if resolved.font_size_scale in (None, 1.0) else resolved.font_size_scale,
-                line_height_scale=0.95 if resolved.line_height_scale in (None, 1.0) else resolved.line_height_scale,
-                section_spacing_scale=0.85 if resolved.section_spacing_scale in (None, 1.0) else resolved.section_spacing_scale,
-                item_spacing_scale=0.85 if resolved.item_spacing_scale in (None, 1.0) else resolved.item_spacing_scale,
-            )
         self.validate(resolved)
         return resolved
 
@@ -52,8 +40,6 @@ class StyleProfile:
                 raise ValueError(f"Invalid layout value: {name}={value}")
             if name.endswith("scale") and not 0.7 <= value <= 1.3:
                 raise ValueError(f"Layout scale out of range: {name}={value}")
-        if self.name == "legacy-v1":
-            return
         sizes = self.font_sizes(layout, tokens)
         if min(sizes.values()) < self.minimum_font_pt:
             raise ValueError(f"{self.name} requires all text to be at least {self.minimum_font_pt} pt; revise content instead of shrinking further.")
@@ -74,7 +60,6 @@ class StyleProfile:
         return {
             "name": self.name, "version": self.version, "font_family": self.font_family,
             "page_size": "A4", "page_width_mm": 210.0, "page_height_mm": 297.0,
-            "justify_body": self.justify_body, "short_headings": self.short_headings,
             "minimum_font_pt": self.minimum_font_pt, "minimum_margin_mm": self.minimum_margin_mm,
             "tokens": asdict(self.tokens), "layout": asdict(layout),
             "effective_scales": {
@@ -85,34 +70,10 @@ class StyleProfile:
         }
 
 
-_PROFESSIONAL_TOKENS = replace(
-    DEFAULT_TOKENS,
-    accent_color=(0, 0, 0), body_ink_color=(0, 0, 0),
-    header_font_size=19.0, contact_font_size=11.0, section_font_size=12.0,
-    body_font_size=11.0, company_font_size=11.5, dates_font_size=11.0,
-    job_detail_font_size=11.0, bullet_font_size=11.0, education_font_size=11.0,
-    header_leading=22.0, section_leading=14.0, body_leading=12.65,
-    company_leading=13.25, dates_leading=12.65, job_detail_leading=12.65,
-    bullet_leading=12.65, education_leading=12.65,
-    header_space_after=3.0, contact_space_after=2.0,
-    section_space_before=9.0, section_space_after=4.0,
-    company_space_after=2.0, job_detail_space_after=3.0,
-    bullet_space_after=3.0, education_space_after=2.0,
-    section_hr_thickness=0.4, company_space_before=6.0,
-)
-
 STYLES = {
-    "legacy-v1": StyleProfile(
-        "legacy-v1", 1, DEFAULT_TOKENS, DOCX_DEFAULT_SETTINGS,
-        justify_body=True, short_headings=False, minimum_font_pt=8.5, minimum_margin_mm=0.0,
-    ),
-    "professional-v2": StyleProfile(
-        "professional-v2", 2, _PROFESSIONAL_TOKENS,
-        LayoutSettings(margin_top_mm=15.24, margin_bottom_mm=15.24, margin_side_inch=0.65),
-    ),
     DEFAULT_STYLE: StyleProfile(
-        DEFAULT_STYLE, 3, _PROFESSIONAL_TOKENS,
-        LayoutSettings(margin_top_mm=15.24, margin_bottom_mm=15.24, margin_side_inch=0.65),
+        DEFAULT_STYLE, 3, DEFAULT_TOKENS,
+        LayoutSettings(),
         font_family="Arial",
     ),
 }

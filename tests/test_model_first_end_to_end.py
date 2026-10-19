@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import os
 import shutil
 import subprocess
 import tempfile
@@ -140,7 +139,7 @@ class ModelFirstIntegrationTests(unittest.TestCase):
 class RealCandidateIntegrationTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        cls.render_style = os.environ.get("MONKEY_RESUME_TEST_STYLE", DEFAULT_STYLE)
+        cls.render_style = DEFAULT_STYLE
         try:
             resolve_font_files(get_style(cls.render_style).font_family)
         except (RuntimeError, OSError, subprocess.SubprocessError) as exc:

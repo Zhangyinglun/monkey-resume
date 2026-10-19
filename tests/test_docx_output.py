@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import copy
-import os
 import shutil
 import subprocess
 import sys
@@ -56,9 +55,9 @@ class DocxTemplateTests(unittest.TestCase):
         before = copy.deepcopy(resume)
         layout = LayoutSettings(font_size_scale=1.0, margin_side_inch=0.75)
         with tempfile.TemporaryDirectory() as directory:
-            path = Path(generate_docx("resume.docx", resume, directory, layout, style="legacy-v1"))
+            path = Path(generate_docx("resume.docx", resume, directory, layout, style=DEFAULT_STYLE))
             doc = Document(path)
-            self.assertEqual(doc.styles["Normal"].font.size.pt, 9.5)
+            self.assertEqual(doc.styles["Normal"].font.size.pt, 11.0)
             self.assertAlmostEqual(doc.sections[0].left_margin.mm, 19.05)
             self.assertIn(resume["experience"][0]["bullets"][0], extract_docx_text(path))
         self.assertEqual(resume, before)
@@ -73,7 +72,7 @@ class DocxTemplateTests(unittest.TestCase):
                         sample_resume(),
                         directory,
                         LayoutSettings(line_height_scale=scale),
-                        style="legacy-v1",
+                        style=DEFAULT_STYLE,
                     )
                 )
                 texts.append(extract_docx_text(path))
@@ -82,7 +81,8 @@ class DocxTemplateTests(unittest.TestCase):
                 )
                 spacings.append(paragraph.paragraph_format.line_spacing.pt)
             self.assertEqual(len(set(texts)), 1)
-            self.assertTrue(all(a > b for a, b in zip(spacings, spacings[1:])))
+            self.assertGreater(spacings[0], spacings[1])
+            self.assertTrue(all(a >= b for a, b in zip(spacings, spacings[1:])))
 
     def test_passing_default_is_not_squeezed_for_whitespace(self) -> None:
         before = sample_resume()
@@ -112,13 +112,14 @@ class DocxTemplateTests(unittest.TestCase):
 
     def test_converter_timeout_does_not_publish_pdf(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
-            path = Path(generate_docx("resume.docx", sample_resume(), directory, style="professional-v2"))
+            path = Path(generate_docx("resume.docx", sample_resume(), directory, style=DEFAULT_STYLE))
             with (
                 mock.patch("shutil.which", side_effect=lambda name: "soffice" if name == "soffice" else None),
+                mock.patch("templates.docx_resume_template.conversion_environment", return_value={}),
                 mock.patch("subprocess.run", side_effect=subprocess.TimeoutExpired("soffice", 120)),
             ):
                 with self.assertRaises(subprocess.TimeoutExpired):
-                    export_pdf(path, style="professional-v2")
+                    export_pdf(path, style=DEFAULT_STYLE)
             self.assertFalse(path.with_suffix(".pdf").exists())
 
     def test_missing_selected_font_blocks_conversion(self) -> None:
@@ -137,13 +138,17 @@ class DocxTemplateTests(unittest.TestCase):
         from reportlab.pdfbase.ttfonts import TTFont
         from reportlab.pdfgen.canvas import Canvas
 
+        try:
+            font_paths = resolve_font_files("Arial")
+        except RuntimeError as exc:
+            self.skipTest(str(exc))
         regular = next(
-            path for path in resolve_font_files("Carlito")
+            path for path in font_paths
             if TTFont("inspect", str(path)).face.styleName == b"Regular"
         )
         pdfmetrics.registerFont(TTFont("ConverterRegularOnly", str(regular)))
         with tempfile.TemporaryDirectory() as directory:
-            path = Path(generate_docx("resume.docx", sample_resume(), directory, style="professional-v2"))
+            path = Path(generate_docx("resume.docx", sample_resume(), directory, style=DEFAULT_STYLE))
             original_run = subprocess.run
 
             def converter(command: list[str], **kwargs: object) -> subprocess.CompletedProcess:
@@ -159,7 +164,7 @@ class DocxTemplateTests(unittest.TestCase):
                 path.with_suffix(".pdf").unlink(missing_ok=True)
                 with self.subTest(replacement=replacement), mock.patch("subprocess.run", side_effect=converter):
                     with self.assertRaisesRegex(RuntimeError, "Refusing font substitution"):
-                        export_pdf(path, style="professional-v2")
+                        export_pdf(path, style=DEFAULT_STYLE)
 
 
 @unittest.skipUnless(
@@ -168,7 +173,7 @@ class DocxTemplateTests(unittest.TestCase):
 class DocxRenderTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        cls.render_style = os.environ.get("MONKEY_RESUME_TEST_STYLE", DEFAULT_STYLE)
+        cls.render_style = DEFAULT_STYLE
         try:
             resolve_font_files(get_style(cls.render_style).font_family)
         except (RuntimeError, OSError, subprocess.SubprocessError) as exc:

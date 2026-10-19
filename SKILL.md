@@ -160,9 +160,10 @@ original evidence/corrections to check assertions and important omissions.
 Use the returned review template's actual bindings; never manufacture PASS.
 Content and real DOCX/PDF preview checks belong to this one review stage.
 
-The default `professional-v3` style uses Arial. Follow the selected-style font
-checks in `references/docx-output.md`; missing fonts or actual substitution block
-acceptance. Preserve older style choices and accepted artifacts.
+The only supported style is `professional-v3` with Arial. Follow the font checks
+in `references/docx-output.md`; missing fonts or actual substitution block
+acceptance. Prepare and publish only current-contract candidates. Preserve
+existing accepted artifacts in the external workspace.
 
 Inspect every page of the DOCX's independent preview and same-source PDF. Final
 output must be one readable A4 page, without clipping. If overfilled, improve

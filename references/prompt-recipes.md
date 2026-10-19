@@ -55,5 +55,6 @@ writing style and calibrating verification. These are family starting points bas
 on Astra observations; evaluate them with the actual model/task. They do not
 recommend canceling factual checks. Host system/developer authority remains intact.
 
-Local synthetic reviewer experiments are documented under `docs/design/evaluation/`.
-They do not establish full generation quality, physical page fit or zero errors.
+Reviewer assessments require calibration against known supported and unsupported
+assertions. Limited examples do not establish full generation quality, physical
+page fit or zero errors.

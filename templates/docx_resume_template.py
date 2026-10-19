@@ -115,8 +115,7 @@ def generate_docx(output_file: str, content_dict: dict[str, Any], base_dir: str,
 
     def paragraph(text: str, size: float = design_tokens.body_font_size, *, bold: bool = False,
                   after: float = design_tokens.body_space_after, center: bool = False,
-                  keep: bool = False, leading: float = design_tokens.body_leading,
-                  justify: bool = profile.justify_body) -> Any:
+                  keep: bool = False, leading: float = design_tokens.body_leading) -> Any:
         p = doc.add_paragraph()
         p.paragraph_format.space_after = Pt(after * item_spacing_scale)
         p.paragraph_format.keep_with_next = keep
@@ -124,7 +123,7 @@ def generate_docx(output_file: str, content_dict: dict[str, Any], base_dir: str,
         if center:
             p.alignment = WD_ALIGN_PARAGRAPH.CENTER
         else:
-            p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY if justify else WD_ALIGN_PARAGRAPH.LEFT
+            p.alignment = WD_ALIGN_PARAGRAPH.LEFT
         _add_text(p, text, bold=bold)
         # Compress leading independently of font size, with a glyph-clearance floor.
         p.paragraph_format.line_spacing = Pt(max(leading * line_height_scale, size * font_scale * 1.1))
@@ -134,7 +133,7 @@ def generate_docx(output_file: str, content_dict: dict[str, Any], base_dir: str,
 
     def heading(title: str, *, literal: bool = False) -> None:
         p = paragraph(title if literal else profile.heading(title), design_tokens.section_font_size, bold=True, after=design_tokens.section_space_after,
-                      keep=True, leading=design_tokens.section_leading, justify=False)
+                      keep=True, leading=design_tokens.section_leading)
         p.paragraph_format.space_before = Pt(design_tokens.section_space_before * section_spacing_scale)
         for run in p.runs:
             run.font.color.rgb = RGBColor(*design_tokens.accent_color)
@@ -149,11 +148,11 @@ def generate_docx(output_file: str, content_dict: dict[str, Any], base_dir: str,
     def row(left: str, dates: str) -> None:
         follows_bullet = bool(doc.paragraphs and doc.paragraphs[-1].text.startswith("• "))
         p = paragraph(left, design_tokens.company_font_size, bold=True, after=design_tokens.company_space_after,
-                      keep=True, leading=design_tokens.company_leading, justify=False)
+                      keep=True, leading=design_tokens.company_leading)
         if follows_bullet:
             p.paragraph_format.space_before = Pt(design_tokens.company_space_before * section_spacing_scale)
         width = section.page_width - section.left_margin - section.right_margin
-        if profile.name == "professional-v3" and dates:
+        if dates:
             # Helvetica's Arial-compatible widths plus clearance give long rows
             # a separate date line; actual rendering is still checked in QA.
             text_width = stringWidth(left, "Helvetica-Bold", design_tokens.company_font_size * font_scale)
@@ -166,17 +165,8 @@ def generate_docx(output_file: str, content_dict: dict[str, Any], base_dir: str,
                 return
         p.paragraph_format.tab_stops.add_tab_stop(width, WD_TAB_ALIGNMENT.RIGHT)
         date_run = p.add_run()
-        if profile.name == "professional-v2":
-            # Anchor to the right margin rather than a reader's numeric tab stop.
-            tab = OxmlElement('w:ptab')
-            for key, value in {'alignment': 'right', 'relativeTo': 'margin', 'leader': 'none'}.items():
-                tab.set(qn('w:' + key), value)
-            date_run._r.append(tab)
-            # Readers that omit positional tabs still retain a word boundary.
-            date_run.add_text(' ' + dates)
-        else:
-            date_run.add_tab()
-            date_run.add_text(dates)
+        date_run.add_tab()
+        date_run.add_text(dates)
         date_run.bold = False
         date_run.font.size = Pt(design_tokens.dates_font_size * font_scale)
 
@@ -219,15 +209,9 @@ def generate_docx(output_file: str, content_dict: dict[str, Any], base_dir: str,
         row(edu.get('school', ''), edu.get('dates', ''))
         if edu.get('degree'):
             paragraph(edu['degree'], design_tokens.education_font_size, after=design_tokens.education_space_after)
-    if profile.name == "professional-v3":
-        _explicit_fonts(doc, profile.font_family)
+    _explicit_fonts(doc, profile.font_family)
     doc.save(target)
     return str(target)
-
-
-def require_carlito() -> None:
-    """Retained entry point for the older Carlito profiles."""
-    resolve_font_files("Carlito")
 
 
 def export_pdf(docx_path: Path, *, style: str = DEFAULT_STYLE) -> Path:
@@ -254,7 +238,7 @@ def export_pdf(docx_path: Path, *, style: str = DEFAULT_STYLE) -> Path:
 
 def generate_resume(output_file: str, content_dict: dict[str, Any], base_dir: str = 'resume_output',
                     layout: LayoutSettings | None = None, *, style: str = DEFAULT_STYLE) -> str:
-    """Compatibility adapter for the existing PDF geometry and auto-fit gates."""
+    """Render a DOCX and export its same-source PDF for QA and layout tuning."""
     if Path(output_file).suffix.lower() != '.pdf':
         raise ValueError('QA output_file must use .pdf.')
     source = generate_docx(str(Path(output_file).with_suffix('.docx')), content_dict, base_dir, layout, style=style)

@@ -121,7 +121,7 @@ def build_quality_report(
     geometry_findings: list[dict[str, Any]] | None = None,
     bounds_findings: list[dict[str, Any]] | None = None,
     min_font_pt: float | None = None,
-    minimum_font_pt: float = 8.5,
+    minimum_font_pt: float = 10.5,
 ) -> dict[str, Any]:
     checks: list[dict[str, Any]] = []
 
@@ -429,7 +429,7 @@ def check_pdf_file(
     *,
     keywords: list[str] | None = None,
     margin_thresholds: dict[str, float] | None = None,
-    minimum_font_pt: float = 8.5,
+    minimum_font_pt: float = 10.5,
 ) -> dict[str, Any]:
     """Run full quality check on a PDF file and return the report dict.
 

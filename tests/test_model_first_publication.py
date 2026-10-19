@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+import hashlib
 import json
 import sys
 import tempfile
@@ -240,6 +241,30 @@ class PublicationTests(unittest.TestCase):
                 change(review)
                 with self.assertRaises(ValueError):
                     publication.publish_candidate(self.workspace, prepared["candidate_id"], review)
+                self.assertFalse((self.workspace / "resume_history").exists())
+
+    def test_publish_rejects_retired_or_incomplete_style_records(self) -> None:
+        for change in (
+            lambda r: r.pop("style"),
+            lambda r: r["style"].update(name="legacy-v1"),
+            lambda r: r["style"].update(name="professional-v2"),
+            lambda r: r["style"].pop("minimum_font_pt"),
+            lambda r: r["style"].update(minimum_font_pt=8.5),
+            lambda r: r["style"].update(font_family="Carlito"),
+        ):
+            with self.subTest(change=change):
+                prepared = self.prepare()
+                record_path = Path(prepared["record"])
+                record = json.loads(record_path.read_text(encoding="utf-8"))
+                change(record)
+                record_path.write_text(json.dumps(record), encoding="utf-8")
+                # Model an intact old candidate binding, rather than a tampered record.
+                binding_path = record_path.parent.parent / ".bindings" / f"{prepared['candidate_id']}.json"
+                binding = json.loads(binding_path.read_text(encoding="utf-8"))
+                binding["record_sha256"] = hashlib.sha256(record_path.read_bytes()).hexdigest()
+                binding_path.write_text(json.dumps(binding), encoding="utf-8")
+                with self.assertRaisesRegex(publication.ReviewNotReady, "Unsupported candidate style"):
+                    publication.publish_candidate(self.workspace, prepared["candidate_id"], self.review(prepared))
                 self.assertFalse((self.workspace / "resume_history").exists())
 
     def test_stale_cache_and_changed_artifact_rejected(self) -> None:

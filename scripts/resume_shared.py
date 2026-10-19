@@ -35,22 +35,6 @@ def resolve_user_workspace(workspace: Path) -> Path:
     return workspace.expanduser().resolve()
 
 
-_QUANTIFIED_RESULT_PATTERNS = (
-    re.compile(r"(?:\d+(?:\.\d+)?\s*(?:%|x\b|×))", re.IGNORECASE),
-    re.compile(
-        r"(?:[$€£¥]\s*\d|\d+(?:\.\d+)?\s*(?:ms|milliseconds?|seconds?|minutes?|hours?|days?|weeks?|months?|years?))",
-        re.IGNORECASE,
-    ),
-    re.compile(
-        r"\d+(?:\.\d+)?\s*(?:users?|customers?|requests?|transactions?|records?|events?|services?|engineers?|people|deployments?)",
-        re.IGNORECASE,
-    ),
-    re.compile(
-        r"(?:from\s+\d+(?:\.\d+)?\s+to\s+\d+(?:\.\d+)?|\d+(?:\.\d+)?\s*(?:uptime|latency|revenue|cost))",
-        re.IGNORECASE,
-    ),
-)
-
 ACTION_VERBS: frozenset[str] = frozenset(
     {
         "accelerated",
@@ -110,40 +94,27 @@ _ACTION_VERB_RE = re.compile(
     rf"^(?:{'|'.join(sorted(map(re.escape, ACTION_VERBS), key=len, reverse=True))})\b",
     re.IGNORECASE,
 )
-_METHOD_MARKER_RE = re.compile(
-    r"\b(?:by|through|using|via|with|leveraging|on|across)\b", re.IGNORECASE
-)
-_RESULT_MARKER_RE = re.compile(
-    r"\b(?:achieving|allowing|enabling|improving|increasing|reducing|resulting|"
-    r"strengthening|supporting|to\s+(?:enable|improve|reduce|support|prevent|ensure))\b",
-    re.IGNORECASE,
-)
-
 _SKILL_REQUIRED = ("category", "items")
 _EXPERIENCE_REQUIRED = ("company", "title", "dates", "bullets")
 _EDUCATION_REQUIRED = ("school", "degree", "dates")
 
 
 def normalize_skill_items(value: Any) -> list[str]:
-    """Return non-empty Skill display terms from list or legacy comma text."""
-    if isinstance(value, str):
-        return [item.strip() for item in value.split(",") if item.strip()]
-    if isinstance(value, list):
-        items: list[str] = []
-        for index, item in enumerate(value):
-            if not isinstance(item, str) or not item.strip():
-                raise ValueError(f"Skill item at index {index} must be a non-empty string.")
-            items.append(item.strip())
-        return items
-    raise ValueError("Skill items must be a comma-delimited string or an array of strings.")
+    """Validate and normalize the current array-of-strings skills format."""
+    if not isinstance(value, list):
+        raise ValueError("Skill items must be an array of strings.")
+    items: list[str] = []
+    for index, item in enumerate(value):
+        if not isinstance(item, str) or not item.strip():
+            raise ValueError(f"Skill item at index {index} must be a non-empty string.")
+        items.append(item.strip())
+    return items
 
 
 def validate_resume_content(payload: dict[str, Any], *, require_non_empty: bool = False) -> None:
     """Validate resume JSON has required keys and correct types.
 
-    When *require_non_empty* is True the list fields must also be non-empty
-    (used by the PDF generator).  Otherwise only type checks are performed
-    (used by the cache manager and template renderer).
+    When *require_non_empty* is True, required fields must also be non-empty.
     """
     if "summary" in payload:
         raise ValueError(
@@ -184,13 +155,11 @@ def validate_resume_content(payload: dict[str, Any], *, require_non_empty: bool 
         if not isinstance(entry["category"], str):
             raise ValueError(f"skills[{i}].category must be a str")
         items_value = entry["items"]
-        if not isinstance(items_value, (str, list)):
-            raise ValueError(f"skills[{i}].items must be a str or list")
+        if not isinstance(items_value, list):
+            raise ValueError(f"skills[{i}].items must be an array of strings")
         normalized = normalize_skill_items(items_value)
-        if isinstance(items_value, list) and not normalized:
+        if not normalized:
             raise ValueError(f"skills[{i}].items must not be an empty array.")
-        if require_non_empty and not normalized:
-            raise ValueError(f"skills[{i}].items must be non-empty.")
 
     # -- Nested field validation for experience --
     for i, entry in enumerate(payload["experience"]):
@@ -317,7 +286,7 @@ def iter_resume_text_fields(
             entity_key = f"{section}[{index}]"
             for field in fields:
                 value = entry.get(field)
-                if section == "skills" and field == "items" and isinstance(value, list):
+                if section == "skills" and field == "items":
                     for item_index, item in enumerate(normalize_skill_items(value)):
                         yield f"{entity_key}.items[{item_index}]", item, "skill", entity_key
                     continue
@@ -335,29 +304,14 @@ def iter_resume_text_fields(
                         )
 
 
-def collect_bullets(resume: dict[str, Any], *, include_projects: bool = True) -> list[str]:
-    """Collect bullet strings from experience (and optionally projects)."""
-    bullets: list[str] = []
-    for exp in resume.get("experience", []):
-        bullets.extend(exp.get("bullets", []))
-    if include_projects:
-        for proj in resume.get("projects", []):
-            bullets.extend(proj.get("bullets", []))
-    return bullets
-
-
-def _extract_terms(keyword_list: list[Any]) -> list[str]:
-    """Extract term strings from keyword list (supports both str and dict format)."""
-    terms: list[str] = []
-    for item in keyword_list:
-        if isinstance(item, str):
-            terms.append(item.lower())
-        elif isinstance(item, dict) and "term" in item:
-            terms.append(str(item["term"]).lower())
-    return list(dict.fromkeys(term for term in terms if term.strip()))
-
-
-extract_terms = _extract_terms
+def collect_bullets(resume: dict[str, Any]) -> list[str]:
+    """Collect experience and project bullets for the current content checks."""
+    return [
+        bullet
+        for section in ("experience", "projects")
+        for item in resume.get(section, [])
+        for bullet in item.get("bullets", [])
+    ]
 
 
 def term_matches(text: str, term: str) -> bool:
@@ -378,112 +332,3 @@ def term_matches(text: str, term: str) -> bool:
 def starts_with_action_verb(text: str) -> bool:
     """Return whether *text* opens with a recognized action verb."""
     return bool(_ACTION_VERB_RE.search(text.strip()))
-
-
-def has_quantified_result(text: str) -> bool:
-    """Detect result-oriented quantities without counting bare version numbers."""
-    return any(pattern.search(text) for pattern in _QUANTIFIED_RESULT_PATTERNS)
-
-
-def score_bullet(
-    bullet: str,
-    p1_terms: list[str],
-    p2_terms: list[str],
-    p3_terms: list[str],
-) -> dict[str, Any]:
-    """Score a single bullet against JD keyword tiers.
-
-    Scoring rules:
-    - P1 keyword hit: +3 per unique keyword
-    - P2 keyword hit: +2 per unique keyword
-    - P3 keyword hit: +1 per unique keyword
-    - Complete evidence structure (action + keyword + method + result): +1
-
-    A sourced number counts as a result marker, but a qualitative result
-    phrase is equally complete; numbers are never required.
-
-    Returns dict with score breakdown.
-    """
-    p1_hits = [term for term in p1_terms if term_matches(bullet, term)]
-    p2_hits = [term for term in p2_terms if term_matches(bullet, term)]
-    p3_hits = [term for term in p3_terms if term_matches(bullet, term)]
-
-    has_number = has_quantified_result(bullet)
-    has_action = bool(_ACTION_VERB_RE.search(bullet.strip()))
-    has_method = bool(_METHOD_MARKER_RE.search(bullet))
-    has_result = bool(_RESULT_MARKER_RE.search(bullet)) or has_number
-    has_four_elements = (
-        has_action
-        and has_method
-        and has_result
-        and bool(p1_hits or p2_hits or p3_hits)
-        and len(bullet.split()) >= 8
-    )
-
-    score = len(p1_hits) * 3 + len(p2_hits) * 2 + len(p3_hits) * 1 + (1 if has_four_elements else 0)
-
-    return {
-        "score": score,
-        "p1_hits": p1_hits,
-        "p2_hits": p2_hits,
-        "p3_hits": p3_hits,
-        "has_quantification": has_number,
-        "has_action": has_action,
-        "has_method": has_method,
-        "has_result": has_result,
-        "has_four_elements": has_four_elements,
-    }
-
-
-def score_all_bullets(resume: dict[str, Any], jd_analysis: dict[str, Any]) -> list[dict[str, Any]]:
-    """Score all experience bullets against JD keywords.
-
-    Returns list of scored entries with path, text, and score breakdown.
-    """
-    keywords = jd_analysis.get("keywords", {})
-    p1_terms = _extract_terms(keywords.get("P1", []))
-    p2_terms = _extract_terms(keywords.get("P2", []))
-    p3_terms = _extract_terms(keywords.get("P3", []))
-
-    scored: list[dict[str, Any]] = []
-    for section in ("experience", "projects"):
-        for i, item in enumerate(resume.get(section, [])):
-            for j, bullet in enumerate(item.get("bullets", [])):
-                result = score_bullet(str(bullet), p1_terms, p2_terms, p3_terms)
-                scored.append(
-                    {
-                        "path": f"{section}[{i}].bullets[{j}]",
-                        "text": str(bullet),
-                        **result,
-                    }
-                )
-
-    scored.sort(key=lambda x: x["score"], reverse=True)
-    return scored
-
-
-def parse_pipe_delimited_items(
-    lines: list[str],
-    field_names: tuple[str, str, str],
-    default_name: str,
-) -> list[dict[str, str]]:
-    """Parse lines of ``name | field2 | field3`` into dicts.
-
-    *field_names* maps positional parts to dict keys (e.g.
-    ``("name", "issuer", "dates")``).  *default_name* is used as the
-    placeholder when the first part is empty (e.g. ``"[Certification]"``).
-    """
-    items: list[dict[str, str]] = []
-    for line in lines:
-        cleaned = line.lstrip("-\u2022 ").strip()
-        if not cleaned:
-            continue
-        parts = [item.strip() for item in cleaned.split("|")]
-        items.append(
-            {
-                field_names[0]: parts[0] if parts else default_name,
-                field_names[1]: parts[1] if len(parts) > 1 else "",
-                field_names[2]: parts[2] if len(parts) > 2 else "",
-            }
-        )
-    return items

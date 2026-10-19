@@ -20,7 +20,7 @@
 - All five required rules in `resume-language-quality.md` checked against prose
   and evidence; concise presentation preserves actual capability and metric scope.
 - Traceability checks pass without being described as semantic proof.
-- Selected style is recorded; default `professional-v3` uses Arial. Required fonts
+- The current `professional-v3` style is recorded and uses Arial. Required fonts
   are available and actual rendered text uses that family without substitution.
 - Actual candidate DOCX/PDF remain unaccepted until unified review completes.
 

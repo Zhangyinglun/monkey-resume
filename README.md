@@ -15,10 +15,13 @@ Unsupported requirements remain gaps, not invented experience. Professional
 positioning appears in experience and skills; generated resumes have no Summary
 section.
 
-The default `professional-v3` style uses Arial, black text, left-aligned 11 pt
-body, short headings, standard right-aligned date tabs and bounded auto-fit.
-Select `prepare --style professional-v2` or `prepare --style legacy-v1` for the
-retained Carlito styles. To compare versioned styles with wholly fictional content, run
+The only supported style, `professional-v3`, uses Arial, black text, left-aligned
+11 pt body, short headings, standard right-aligned date tabs and bounded auto-fit.
+The current model-led draft workflow is the only supported runtime contract.
+Older styles, input formats and candidates cannot be used to generate or publish
+new output. Existing personal evidence and accepted artifacts remain preserved
+in the external workspace.
+To preview the current style with fictional content, run
 `python3 scripts/preview_resume_styles.py --output-dir /absolute/external/new-directory`.
 Design previews are not Accepted Resumes.
 
@@ -34,8 +37,7 @@ mkdir -p ~/.agents/skills
 ln -s ~/Projects/monkey-resume ~/.agents/skills/monkey-resume
 ```
 
-Rendering also needs LibreOffice, Poppler and the selected style's fonts: Arial
-for the default, Carlito for older styles. Install Arial separately under its
+Rendering also needs LibreOffice, Poppler and Arial. Install Arial separately under its
 license; font files are not bundled. Missing fonts or actual rendered substitution
 block a candidate from passing, even if a replacement looks similar. See
 [output and QA](references/docx-output.md) for setup and environment limitations.
@@ -97,8 +99,9 @@ USER_WORKSPACE/
 
 Document reimports are idempotent. Candidate answers support optional `--event-id`
 for retry deduplication; explicit source-backed `reactivate`/`supersedes` corrections
-preserve history. Old-schema caches are refused: choose a deliberately new external
-workspace or separately authorize migration. No migration CLI is shipped.
+preserve history. Only the current cache schema is supported. For an unsupported
+cache, use a deliberately new external workspace and retain the original data.
+Migration is outside the runtime contract; no migration CLI is shipped.
 
 Accepted history retains the same-source PDF even for DOCX-only delivery, together
 with review and candidate records. Known company/role/job URL belong in draft

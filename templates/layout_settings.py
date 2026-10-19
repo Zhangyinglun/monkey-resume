@@ -1,19 +1,16 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Layout settings for resume PDF template."""
+"""Layout settings for the current DOCX resume."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 
-# Compact mode defaults: tuned for readability at reduced size.
-# Intentionally less aggressive than earlier values (section_spacing 0.80→0.88,
-# item_spacing 0.75→0.85) to avoid cramped layouts; the auto-fit engine handles
-# deeper compression via its own candidate presets when needed.
+# Compact mode stays within the current readability limits.
 _COMPACT_DEFAULTS = {
-    "font_size": 0.92,
-    "line_height": 0.88,
-    "section_spacing": 0.88,
+    "font_size": 10.5 / 11.0,
+    "line_height": 0.95,
+    "section_spacing": 0.85,
     "item_spacing": 0.85,
 }
 
@@ -29,15 +26,15 @@ def _clamp(
 
 @dataclass(frozen=True)
 class LayoutSettings:
-    """Immutable layout configuration for PDF generation."""
+    """Immutable layout configuration for DOCX rendering."""
 
     font_size_scale: float | None = 1.0
     line_height_scale: float | None = 1.0
     section_spacing_scale: float | None = 1.0
     item_spacing_scale: float | None = 1.0
-    margin_top_mm: float = 5.0
-    margin_bottom_mm: float = 5.0
-    margin_side_inch: float = 0.6
+    margin_top_mm: float = 15.24
+    margin_bottom_mm: float = 15.24
+    margin_side_inch: float = 0.65
     compact_mode: bool = False
 
     def _effective(self, field: str) -> float:
@@ -62,12 +59,3 @@ class LayoutSettings:
     @property
     def effective_item_spacing_scale(self) -> float:
         return self._effective("item_spacing")
-
-
-DEFAULT_SETTINGS = LayoutSettings()
-
-# Approved DOCX sample settings. Keep legacy ReportLab defaults and auto-fit
-# compression presets unchanged; Word stores font sizes in half-point units.
-DOCX_DEFAULT_SETTINGS = LayoutSettings(
-    font_size_scale=1.1, margin_top_mm=12.7, margin_bottom_mm=12.7,
-)

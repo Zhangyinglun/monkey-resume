@@ -199,7 +199,7 @@ def run_all_checks(resume: dict[str, Any] | Path) -> list[dict[str, str]]:
     if isinstance(resume, Path):
         resume = load_json_file(resume)
     validate_resume_content(resume, require_non_empty=True)
-    all_bullets = collect_bullets(resume, include_projects=True)
+    all_bullets = collect_bullets(resume)
     return [
         check_bullet_length(all_bullets),
         check_bullet_starts_with_verb(all_bullets),

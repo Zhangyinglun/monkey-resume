@@ -15,7 +15,7 @@ def resume_with(
     return {
         "name": "Alex Chen",
         "contact": "alex@example.com | +1 206-555-0100",
-        "skills": [{"category": "Languages", "items": "Python"}],
+        "skills": [{"category": "Languages", "items": ["Python"]}],
         "experience": experience,
         "education": [{"school": "Example", "degree": "B.S.", "dates": "2020"}],
     }
