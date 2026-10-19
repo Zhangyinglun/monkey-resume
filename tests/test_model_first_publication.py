@@ -278,11 +278,14 @@ class PublicationTests(unittest.TestCase):
             for path in (self.workspace / folder).rglob("*") if path.is_file()
         }
         replacement = self.prepare()
-        with patch.object(publication, "validate_pdf_fonts", side_effect=RuntimeError("Arial was substituted")):
-            with self.assertRaisesRegex(publication.ReviewNotReady, "Arial was substituted"):
-                publication.publish_candidate(
-                    self.workspace, replacement["candidate_id"], self.review(replacement)
-                )
+        for message in ("Arial was substituted", "Arial Bold face missing"):
+            with self.subTest(message=message), patch.object(
+                publication, "validate_pdf_fonts", side_effect=RuntimeError(message)
+            ):
+                with self.assertRaisesRegex(publication.ReviewNotReady, message):
+                    publication.publish_candidate(
+                        self.workspace, replacement["candidate_id"], self.review(replacement)
+                    )
         self.assertEqual({path: path.read_bytes() for path in old_files}, old_files)
         self.assertEqual(len(list((self.workspace / "resume_history").glob("generation-*"))), 1)
 

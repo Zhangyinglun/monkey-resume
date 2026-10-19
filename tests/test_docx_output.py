@@ -133,8 +133,15 @@ class DocxTemplateTests(unittest.TestCase):
             self.assertFalse(path.with_suffix(".pdf").exists())
 
     def test_converter_substitution_is_rejected(self) -> None:
+        from reportlab.pdfbase import pdfmetrics
+        from reportlab.pdfbase.ttfonts import TTFont
         from reportlab.pdfgen.canvas import Canvas
 
+        regular = next(
+            path for path in resolve_font_files("Carlito")
+            if TTFont("inspect", str(path)).face.styleName == b"Regular"
+        )
+        pdfmetrics.registerFont(TTFont("ConverterRegularOnly", str(regular)))
         with tempfile.TemporaryDirectory() as directory:
             path = Path(generate_docx("resume.docx", sample_resume(), directory, style="professional-v2"))
             original_run = subprocess.run
@@ -143,13 +150,16 @@ class DocxTemplateTests(unittest.TestCase):
                 if "--convert-to" not in command:
                     return original_run(command, **kwargs)
                 canvas = Canvas(str(path.with_suffix(".pdf")))
-                canvas.drawString(50, 750, "This converter substituted Helvetica.")
+                canvas.setFont(replacement, 11)
+                canvas.drawString(50, 750, "This converter lost the requested font or bold face.")
                 canvas.save()
                 return subprocess.CompletedProcess(command, 0, "", "")
 
-            with mock.patch("subprocess.run", side_effect=converter):
-                with self.assertRaisesRegex(RuntimeError, "Refusing font substitution"):
-                    export_pdf(path, style="professional-v2")
+            for replacement in ("Helvetica", "ConverterRegularOnly"):
+                path.with_suffix(".pdf").unlink(missing_ok=True)
+                with self.subTest(replacement=replacement), mock.patch("subprocess.run", side_effect=converter):
+                    with self.assertRaisesRegex(RuntimeError, "Refusing font substitution"):
+                        export_pdf(path, style="professional-v2")
 
 
 @unittest.skipUnless(

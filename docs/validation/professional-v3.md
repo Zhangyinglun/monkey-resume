@@ -13,7 +13,8 @@ package does not distribute Arial or change global font configuration.
 - Ruff, Python compilation, dependency consistency, Skill validation and
   `git diff --check`: passed.
 - Regression tests reject missing required fonts and actual converter font
-  substitution. A new publication font failure preserves accepted files and the
+  substitution, including a converter that emits only the regular face even
+  though both regular and bold are installed. A new publication font failure preserves accepted files and the
   previous generation's history.
 - The real cache/render/review-gate/history integration tests also passed with
   `MONKEY_RESUME_TEST_STYLE=professional-v2`, covering the CI rendering selection.

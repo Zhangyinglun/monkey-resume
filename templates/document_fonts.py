@@ -83,9 +83,15 @@ def conversion_environment(family: str, directory: Path) -> dict[str, str]:
 
 def validate_pdf_fonts(pdf: Path, family: str) -> dict[str, object]:
     """Check rendered characters against the actual installed family's names."""
-    allowed = {
-        TTFontFile(str(path), charInfo=False).name.decode("utf-8")
-        for path in resolve_font_files(family)
+    fonts = [TTFontFile(str(path), charInfo=False) for path in resolve_font_files(family)]
+    allowed = {font.name.decode("utf-8") for font in fonts}
+    faces = {
+        role: {
+            font.name.decode("utf-8") for font in fonts
+            if ("bold" in font.styleName.decode("utf-8").casefold()) == (role == "bold")
+            and "italic" not in font.styleName.decode("utf-8").casefold()
+        }
+        for role in ("regular", "bold")
     }
     with pdfplumber.open(pdf) as document:
         actual = {
@@ -93,9 +99,12 @@ def validate_pdf_fonts(pdf: Path, family: str) -> dict[str, object]:
             for page in document.pages for char in page.chars
             if str(char.get("text", "")).strip()
         }
-    if not actual or actual - allowed:
+    missing_faces = [role for role, names in faces.items() if not actual.intersection(names)]
+    if not actual or actual - allowed or missing_faces:
         raise RuntimeError(
             f"Rendered fonts do not match {family}: {', '.join(sorted(actual)) or 'no text'}. "
+            f"Missing required faces: {', '.join(missing_faces) or 'none'}. "
             "Refusing font substitution; this candidate cannot be published."
         )
-    return {"font_family": family, "actual_fonts": sorted(actual), "verified": True}
+    return {"font_family": family, "actual_fonts": sorted(actual),
+            "actual_faces": sorted(faces), "verified": True}
