@@ -37,9 +37,27 @@ original source bytes/text blocks, candidate answers/corrections, frozen draft
 and compiled manifest. Inspect all sources and all relevant experience, not just
 linked claims or JD keywords.
 
+- For revisions, check the exact user request and applicable cached feedback
+  after blind reading, using the scope rules in `source-ingestion.md`. Verify
+  that the requested change is present and unrelated supported content has not
+  regressed; a user's wording approval is not evidence for a factual assertion.
 - Check every substantive assertion against original meaning and current
   corrections. Cite display positions, claim/source/block IDs and original
   excerpts for disputed assertions.
+- Check every header and selected entry against the required-facts table in
+  `resume-working-schema.md`. Verify each fact against the correct entity and
+  source, including each employment's location and start/end or current status.
+  Record checked display positions and missing/unsupported facts in
+  `evidence_review.assertion_review`; required-fact omissions and placeholders
+  are `blocking`, even if the remaining prose has valid evidence links.
+- Apply the accuracy/completeness table in `resume-working-schema.md` to all
+  seven sections. Complete `evidence_review.fact_review` after full-source
+  comparison: check every program-listed display path and describe the actual
+  accuracy and completeness results, citing source/claim/block locations and
+  latest corrections. For `contact`, check each component and any hyperlink
+  target, not just the combined string. For `education`, reconcile all current
+  education entities so a dropped degree cannot escape field validation.
+  An absent optional section still needs a selection/omission explanation.
 - Preserve each metric's object, project, period, scale and completion state.
   Verify personal versus team responsibility and sourced project→employment
   ownership. A collection of valid IDs cannot justify moving metrics or tools.
@@ -49,13 +67,27 @@ linked claims or JD keywords.
 - Assess JD fit, clear contributions and skills organization. Distinguish direct
   support, transferable evidence, partial support and not shown. “Not shown” is
   not proof of a candidate Gap. Preserve uncertainty; do not invent evidence.
+- Read `optional-modules.md` and apply its supplementary-value criteria to every
+  included open-source or patent contribution, including patents under an employer.
+  Independently identify the target need, evidence added beyond selected work
+  history and whether its space displaces stronger relevant evidence. Record the
+  result in `evidence_review.assertion_review`. Inclusion without clear
+  supplementary value is `blocking`; remove it before acceptance. Omitting these
+  contributions is not an important omission merely because they exist in the
+  cache; use the same criteria when evaluating their omission.
 - Check the required writing rules against the visible prose and original meaning:
-  focused contribution/result, concise but faithful scope, action-first sentences
-  and supported recognizable product names. Do not demand audit caveats in every
+  focused contribution/result, concise but faithful scope, precise and varied
+  action-first sentences and supported recognizable product names. Do not demand audit caveats in every
   bullet or skill label; a short sentence must still preserve its metric's object
   and actual responsibility. Check rendered endings in the next stage.
+- Apply the opening-verb check in rule 4 of `resume-language-quality.md` to every
+  experience/project bullet. Record locations and opening verbs in reading order,
+  repeated groups, and the correction or evidence-based reason for retaining each
+  group in `evidence_review.assertion_review`. A mere count or a claim that verbs
+  are varied does not complete this check. Unjustified repetitive openings are a
+  required-rule violation; accurate, justified repetition is allowed.
 - Classify violations of those required rules, factual errors, unjustified
-  important omissions and unintelligible contributions as `blocking`; other
+  optional inclusions, important omissions and unintelligible contributions as `blocking`; other
   stylistic improvements are `suggestion`. No arbitrary word count, bullet count,
   verb dictionary, ATS percentage or hiring probability. Judge professional
   evidence, not protected attributes or prestige.
@@ -80,18 +112,41 @@ skills, and do not omit the independent evidence or visual checks.
 
 ## 3. Inspect actual rendered artifacts
 
-Follow `docx-output.md` to create an independent DOCX preview and PDF page images.
-Inspect every actual page in both sets: readability, clipping, wrapping, borders,
-fonts, margins and hierarchy. One readable A4 page is required, not a page-count
-guess or text-only review. An ODT fallback is not strict DOCX equivalence evidence.
-Unavailable images or rendering leave visual review pending, even if content was
-reviewed. Physical QA and actual visual inspection are complementary.
+Follow `docx-output.md` to open the exact frozen DOCX in a document reader's
+paginated view. Inspect every actual page directly or through screenshots of
+that view: readability, clipping, wrapping, borders, fonts, margins, alignment and
+hierarchy. Record `visual.method: direct_docx`, actual `visual.reader.name` and
+`version`, `pages`, and concrete `observations`. One readable A4 page is required.
+Verify all required facts from `resume-working-schema.md` are actually visible,
+including the location beside each job title; data present only in JSON does not
+satisfy this check. Record missing or clipped facts as `blocking` findings.
+PDF-derived images, HTML reconstruction, text-only review and a first-page-only
+thumbnail do not satisfy this check. Unavailable direct viewing leaves visual
+review pending, even if content or physical PDF QA passed. Do not edit/save the
+frozen DOCX during inspection; changed bytes require reprepare and new review.
+
+For DOCX-only delivery, PDF visual inspection is optional. When delivering PDF
+(`--format pdf` or `both`), additionally inspect all PDF page images and set
+`pdf_preview_inspected: true`. PDF measurements remain required for every format.
+
+Check the contact-information row below the name in the direct DOCX view (and
+the PDF when delivering it). It must
+occupy exactly one rendered line before Experience; record the observed contact
+line count for each preview in `visual.observations`. Wrapped contact information
+requires `visual.status: blocked` and a `blocking` finding. Unavailable or
+ambiguous measurement leaves review pending. Apply the correction guidance in
+`docx-output.md` and obtain new review after reprepare.
 
 Check every bullet's final-line fill against `resume-language-quality.md`, even
 when physical QA reports PASS. Existing sparse-ending diagnostics only detect
 some short endings; they do not certify the required more-than-half-width rule.
 Record each bullet's location and measured or clearly observed final-line fill in
-`visual.observations` for both previews; add this field if the template omits it.
+`visual.observations` for the direct DOCX view and any delivered PDF.
+Use one record per bullet in reading order, including single-line bullets, with
+its rendered line count, final-line fill and pass/fail result. For each failure,
+record whether to expand with supported detail or shorten onto the preceding
+line, following `resume-language-quality.md`. After reprepare, repeat the complete
+bullet check against the new candidate; earlier measurements do not carry forward.
 This record is a host/reviewer duty, not an existing programmatic validation gate.
 An ending at or below half width requires
 `visual.status: blocked` and a corresponding `blocking` content finding.
@@ -113,8 +168,18 @@ Set these fields **only from completed work**:
 | `content.findings` | Array of finding objects; only `severity: suggestion` may remain |
 | `blind_reading` | Frozen result with nonempty `hiring_problem`, `positioning`, and `requirements` records containing `original_quote` |
 | `evidence_review` | `status: complete`, matching `context_id`, nonempty `assertion_review` and `omission_review` describing actual checks/results |
+| `evidence_review.fact_review` | All seven sections in the accuracy/completeness table, each with `status: pass`, unchanged `expected_paths`, `checked_paths` covering exactly those paths once, and nonempty `accuracy_review` / `completeness_review` describing source comparison and selection decisions |
 | `review_context` | Actual `mode: independent_subagent` or `independent_human`, nonempty session/task/human `identifier`; optional `model` when known |
-| `visual` | `status: pass`, `pages: [1]`, `docx_preview_inspected: true`, `pdf_preview_inspected: true` |
+| `visual` | `status: pass`, `method: direct_docx`, `reader: {name, version}` with actual nonempty values, `pages: [1]`, `docx_preview_inspected: true`, nonempty `observations`; also `pdf_preview_inspected: true` when delivering PDF |
+
+`prepare` computes `candidate-record.json.fact_check_paths` and lists those paths
+as `expected_paths` in each section of the pending review template. Preserve
+that template: fill `checked_paths` only after reviewing them; absent optional
+sections have empty path lists but still require both review explanations.
+Mark unresolved facts `status: blocked` and record a blocking content finding.
+Publication checks coverage and completed passing records, not the semantic truth
+of a reviewer declaration. Missing checks or old candidates without this checklist
+require new preparation and review; prior accepted artifacts remain intact.
 
 `author_id` is in the candidate record (CLI `--author-id`), while `reviewer_id`
 is inside `content`, not a top-level field. Identity and independence are host

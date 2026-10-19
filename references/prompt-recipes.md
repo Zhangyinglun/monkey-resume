@@ -20,7 +20,9 @@ Use the original JD and complete valid cache. Identify core needs, match actual
 work, then write a clear one-page professional resume. Put relevant contributions
 first within each job and organize supported skills to communicate professional
 positioning. Use only the display fields in `resume-working-schema.md`. Preserve
-scope and explain internal system purposes. Read and apply all five required rules
+scope and explain internal system purposes. Apply `optional-modules.md` before
+selecting open-source or patent content; establish supplementary value before
+assigning space. Read and apply all five required rules
 in `resume-language-quality.md` before writing; consolidate only details belonging
 to the same contribution. Compress secondary detail and justify
 important omissions. Maintain only the draft and its evidence references; computed
@@ -35,6 +37,9 @@ Freeze that reading. Then obtain complete source evidence and current correction
 verify each substantive assertion and scan evidence for important omissions before
 judging the writer's omission reasons. Correct numbers with incorrect objects or
 responsibility remain errors. A linked claim is not proof of entailment.
+Apply the optional-content selection check in `recruiter-review-protocol.md`;
+verify the value of included open-source and patent contributions as well as
+whether their omission matters.
 
 Give location, original quote or missing contribution, source IDs, reason and a
 focused correction. Verify all five required writing/wrapping rules in
@@ -43,7 +48,10 @@ violations, established factual errors, unjustified important omissions and
 expression failures from other style preferences and true gaps.
 Do not demand all atomic facts be retained or invent new facts to satisfy the JD.
 
-Inspect actual same-source DOCX/PDF previews after programmatic measurement.
+Open the exact DOCX in a document reader and inspect its paginated view after
+programmatic measurement; record reader name/version and actual observations.
+Inspect PDF pages additionally when delivering PDF. PDF-derived images do not
+count as direct DOCX inspection.
 If unavailable, say so. Content pass does not mean one-page or visual pass. Use
 the actual candidate bindings and review template; do not copy a generic approval.
 
@@ -55,5 +63,6 @@ writing style and calibrating verification. These are family starting points bas
 on Astra observations; evaluate them with the actual model/task. They do not
 recommend canceling factual checks. Host system/developer authority remains intact.
 
-Local synthetic reviewer experiments are documented under `docs/design/evaluation/`.
-They do not establish full generation quality, physical page fit or zero errors.
+Reviewer assessments require calibration against known supported and unsupported
+assertions. Limited examples do not establish full generation quality, physical
+page fit or zero errors.

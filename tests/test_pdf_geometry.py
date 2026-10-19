@@ -312,7 +312,7 @@ class PdfGeometryTests(unittest.TestCase):
             "name": "Alex Chen",
             "contact": "alex@example.com",
             "skills": [{"category": "L", "items": ["Go"]}],
-            "experience": [{"company": "C", "title": "T", "dates": "D", "bullets": ["B"]}],
+            "experience": [{"company": "C", "title": "T", "dates": "D", "location": "Seattle", "bullets": ["B"]}],
             "education": [{"school": "S", "degree": "D", "dates": "2020"}],
         }
         p1_words = [
@@ -351,7 +351,7 @@ class PdfGeometryTests(unittest.TestCase):
                 {"category": "L", "items": ["Python", "Go"]},
                 {"category": "D", "items": ["PostgreSQL"]},
             ],
-            "experience": [{"company": "C", "title": "T", "dates": "D", "bullets": ["B"]}],
+            "experience": [{"company": "C", "title": "T", "dates": "D", "location": "Seattle", "bullets": ["B"]}],
             "education": [{"school": "S", "degree": "D", "dates": "2020"}],
         }
         # Rendered text only reaches y = 500 on an 841.89 pt page -> bottom margin ~ 120mm > 8mm
@@ -388,7 +388,7 @@ class PdfGeometryTests(unittest.TestCase):
                 {"category": "4", "items": ["D"]},
                 {"category": "5", "items": ["E"]},
             ],
-            "experience": [{"company": "C", "title": "T", "dates": "D", "bullets": ["B"]}],
+            "experience": [{"company": "C", "title": "T", "dates": "D", "location": "Seattle", "bullets": ["B"]}],
             "education": [{"school": "S", "degree": "D", "dates": "2020"}],
         }
         # 5 skill lines, bottom whitespace within budget
@@ -427,7 +427,7 @@ class PdfGeometryTests(unittest.TestCase):
                 {"category": "Languages", "items": ["Python", "Go"]},
                 {"category": "Cloud", "items": ["AWS", "GCP"]},
             ],
-            "experience": [{"company": "C", "title": "T", "dates": "D", "bullets": ["B"]}],
+            "experience": [{"company": "C", "title": "T", "dates": "D", "location": "Seattle", "bullets": ["B"]}],
             "education": [{"school": "S", "degree": "D", "dates": "2020"}],
         }
         # 2 skill lines, then experience section with sparse ending, bottom whitespace ~ 6mm
@@ -472,7 +472,7 @@ class PdfGeometryTests(unittest.TestCase):
             "name": "Alex Chen",
             "contact": "alex@example.com",
             "skills": [{"category": "L", "items": ["Python", "Go"]}],
-            "experience": [{"company": "C", "title": "T", "dates": "D", "bullets": ["B"]}],
+            "experience": [{"company": "C", "title": "T", "dates": "D", "location": "Seattle", "bullets": ["B"]}],
             "education": [{"school": "S", "degree": "D", "dates": "2020"}],
         }
         with tempfile.TemporaryDirectory() as temp_dir:

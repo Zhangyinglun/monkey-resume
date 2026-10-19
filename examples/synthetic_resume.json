@@ -9,10 +9,10 @@
       "dates": "Mar 2022 - Present",
       "bullets": [
         "Built a shared inference gateway with request batching and model routing, reducing p95 latency by 28% across six production services while standardizing traffic policies for three product teams.",
-        "Designed workload isolation and autoscaling for GPU inference, improving utilization from 42% to 64% while protecting latency targets through separate capacity pools for interactive and batch workloads.",
-        "Implemented trace correlation across API, queue and worker boundaries, cutting median incident diagnosis time from 45 to 18 minutes by linking failed requests to deployment and infrastructure events.",
-        "Led a migration to versioned model deployments with canary evaluation and automated rollback, enabling weekly releases across three product teams with consistent quality checks and recovery procedures.",
-        "Created capacity forecasts and cost dashboards for platform owners, identifying idle workloads that reduced monthly infrastructure spend by 17% through scheduled shutdowns and right-sized resource limits."
+        "Designed GPU workload isolation and autoscaling, improving utilization from 42% to 64% while protecting latency targets through separate interactive and batch capacity pools.",
+        "Implemented tracing across API, queue and worker boundaries, cutting median incident diagnosis from 45 to 18 minutes by linking failed requests to deployment and infrastructure events.",
+        "Led canary evaluation and automated rollback for versioned model deployments, enabling weekly releases across three product teams with consistent quality checks and recovery procedures.",
+        "Created capacity forecasts and cost dashboards for platform owners, reducing monthly infrastructure spend by 17% through scheduled shutdowns and right-sized resource limits."
       ]
     },
     {
@@ -21,10 +21,10 @@
       "location": "Bellevue, WA",
       "dates": "Jun 2019 - Feb 2022",
       "bullets": [
-        "Engineered partitioned event processing with Kafka and PostgreSQL, sustaining 80,000 events per second during peak customer traffic while isolating slow consumers through independent processing queues.",
-        "Built idempotent payment workflows and reconciliation jobs, reducing duplicate processing errors by 35% through durable request keys, retry controls and daily comparisons against transaction records.",
+        "Engineered Kafka and PostgreSQL event processing, sustaining 80,000 events per second during peak traffic while isolating slow consumers through independent processing queues.",
+        "Built idempotent payment workflows and reconciliation jobs, reducing duplicate processing errors by 35% through durable request keys, retry controls and daily transaction comparisons.",
         "Introduced load testing and failure injection for critical services, validating recovery behavior before deployment to three production regions and exposing capacity limits during dependency outages.",
-        "Mentored four engineers through design reviews and incident follow-ups, establishing shared runbooks that improved operational handoffs by documenting ownership, escalation paths and recovery steps."
+        "Mentored four engineers through design reviews and incident follow-ups, improving operational handoffs with shared runbooks covering ownership, escalation paths and recovery steps."
       ]
     },
     {
@@ -33,8 +33,8 @@
       "location": "Portland, OR",
       "dates": "Jul 2017 - May 2019",
       "bullets": [
-        "Developed account and authorization APIs in Java, supporting enterprise integrations with consistent access controls and audit events across account provisioning, role changes and session revocation.",
-        "Automated integration tests and release checks for backend services, reducing deployment preparation from two hours to 25 minutes by replacing manual validation with repeatable pre-release workflows."
+        "Developed account and authorization APIs in Java, supporting enterprise integrations with consistent access controls and audit events across account provisioning and role changes.",
+        "Automated backend integration tests and release checks, reducing deployment preparation from two hours to 25 minutes by replacing manual checks with repeatable validation workflows."
       ]
     }
   ],

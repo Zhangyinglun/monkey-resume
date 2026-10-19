@@ -52,13 +52,15 @@ def fixture() -> tuple[dict, dict]:
                 "company": "Same Corp",
                 "title": "Engineer",
                 "dates": "2020–2022",
+                "location": "Seattle",
                 "work": "Built services",
             },
         ),
         entity(
             "job2",
             "employment",
-            {"company": "Same Corp", "title": "Lead", "dates": "2023–2025", "work": "Led platform"},
+            {"company": "Same Corp", "title": "Lead", "dates": "2023–2025",
+             "location": "Remote", "work": "Led platform"},
         ),
         entity("proj", "project", {"name": "Platform", "work": "Reduced latency"}),
         entity("edu", "education", {"school": "University", "degree": "BSc", "dates": "2019"}),
@@ -101,6 +103,7 @@ def fixture() -> tuple[dict, dict]:
                     "company": "Same Corp",
                     "title": "Lead",
                     "dates": "2023–2025",
+                    "location": "Remote",
                     "bullets": ["Improved response time"],
                 }
             ],
@@ -124,6 +127,62 @@ def fixture() -> tuple[dict, dict]:
 
 
 class DraftCompilerTests(unittest.TestCase):
+    def test_missing_work_location_fails_compilation_and_fact_audit(self) -> None:
+        from scripts.audit_factual_integrity import audit_draft
+
+        draft, context = fixture()
+        draft["resume"]["experience"][0].pop("location")
+        with self.assertRaisesRegex(ValueError, r"experience\[0\].*location"):
+            compile_draft(draft, context)
+        report = audit_draft(draft, context)
+        self.assertEqual(report["verdict"], "FAIL")
+        self.assertIn("location", report["findings"][0]["message"])
+
+    def test_work_location_requires_evidence_on_the_selected_employment(self) -> None:
+        draft, context = fixture()
+        compiled = compile_draft(draft, context)
+        location = next(
+            e for e in compiled["manifest"]["entries"]
+            if e["projection_path"] == "experience[0].location"
+        )
+        self.assertEqual(location["source_claim_ids"], ["job2-location"])
+        draft["evidence_links"]["experience[0].location"] = {"claim_ids": ["job1-location"]}
+        with self.assertRaisesRegex(ValueError, "structural identity"):
+            compile_draft(draft, context)
+        draft["evidence_links"].pop("experience[0].location")
+        context["active_claim_ids"].remove("job2-location")
+        with self.assertRaisesRegex(ValueError, r"experience\[0\].location.*unbound"):
+            compile_draft(draft, context)
+
+    def test_blank_contact_fails_compilation_even_with_a_binding(self) -> None:
+        draft, context = fixture()
+        draft["resume"]["contact"] = " \t"
+        with self.assertRaisesRegex(ValueError, "contact.*non-empty"):
+            compile_draft(draft, context)
+
+    def test_education_fields_require_evidence_on_the_correct_school(self) -> None:
+        for field in ("school", "degree", "dates"):
+            draft, context = fixture()
+            context["active_claim_ids"].remove(f"edu-{field}")
+            with self.subTest(field=field), self.assertRaisesRegex(
+                ValueError, rf"education\[0\].{field}.*unbound"
+            ):
+                compile_draft(draft, context)
+        draft, context = fixture()
+        draft["evidence_links"]["education[0].dates"] = {"claim_ids": ["job2-dates"]}
+        with self.assertRaisesRegex(ValueError, "structural identity"):
+            compile_draft(draft, context)
+
+    def test_personal_contact_cannot_bind_an_employer_or_stale_fact(self) -> None:
+        draft, context = fixture()
+        draft["evidence_links"]["contact"] = {"claim_ids": ["job2-location"]}
+        with self.assertRaisesRegex(ValueError, "profile evidence"):
+            compile_draft(draft, context)
+        draft, context = fixture()
+        context["active_claim_ids"].remove("person-contact")
+        with self.assertRaisesRegex(ValueError, "contact.*unusable"):
+            compile_draft(draft, context)
+
     def test_project_heading_is_grouped_presentation_and_changes_fingerprints(self) -> None:
         draft, context = fixture()
         original = compile_draft(draft, context)
@@ -243,7 +302,9 @@ class DraftCompilerTests(unittest.TestCase):
     def test_same_employer_different_employment_not_project_owner(self) -> None:
         draft, context = fixture()
         draft["evidence_links"]["experience[0]"]["entity_id"] = "job1"
-        draft["resume"]["experience"][0].update(title="Engineer", dates="2020–2022")
+        draft["resume"]["experience"][0].update(
+            title="Engineer", dates="2020–2022", location="Seattle"
+        )
         with self.assertRaisesRegex(ValueError, "relationship"):
             compile_draft(draft, context)
 

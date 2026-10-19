@@ -74,6 +74,8 @@ python3 "$MONKEY_RESUME_DIR/scripts/resume_history_manager.py" rebuild \
 History uses a fail-fast `.lock` directory. After interruption, stop all writers
 before removing `resume_history/.lock` and rebuilding. Handled history/publication
 failures roll back the new record and preserve previously accepted outputs and
-records. Abrupt termination or disk failure may need manual recovery. Legacy
-candidate caches require a new workspace or separately authorized migration;
-neither this history CLI nor the new workflow ships a cache migration command.
+records. Abrupt termination or disk failure may need manual recovery. Only
+current record formats are supported by history maintenance. Existing older
+accepted files remain preserved externally; this CLI does not import or upgrade
+old records or publish old candidates. Unsupported candidate caches require a
+new external workspace. No cache migration command is shipped.

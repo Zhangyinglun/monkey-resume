@@ -18,11 +18,14 @@ Repository development instructions for the portable `monkey-resume` Skill packa
 4. For tailoring, read `references/resume-working-schema.md`; initialize and write one draft with `scripts/draft_compiler.py`. Programs compute manifests. Audit checks traceability, not semantic entailment.
 5. For delivery, read `references/docx-output.md` and `references/recruiter-review-protocol.md`; use `scripts/generate_final_resume.py prepare`, then independent content and actual visual review, then `publish`. Incomplete review/rendering leaves a candidate, not an Accepted Resume.
 
-Read `CONTEXT.md` before changing domain terms or evidence/review behavior. Legacy caches require a deliberately new external workspace or separately authorized migration; preserve existing data and history. Restart OpenCode after Skill or agent-instruction updates.
+Read `CONTEXT.md` before changing domain terms or evidence/review behavior. Support only the current cache/draft/candidate contracts and professional-v3 Arial style; remove obsolete paths rather than adding compatibility adapters. Preserve existing external data and accepted artifacts; use a new external workspace for unsupported caches. Migration and old-candidate publication are outside the runtime contract. Restart OpenCode after Skill or agent-instruction updates.
 
 ## Development Checks
 
+Use Python 3.11 or newer for development and the project-local `.venv`.
+
 ```bash
+source .venv/bin/activate
 python3 -m pip install -r requirements-dev.txt
 skills-ref validate "$PWD"
 ruff check scripts templates tests

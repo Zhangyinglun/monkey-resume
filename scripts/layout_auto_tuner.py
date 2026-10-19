@@ -11,7 +11,7 @@ from io import StringIO
 from pathlib import Path
 from typing import Any
 
-from scripts.check_pdf_quality import DEFAULT_MARGIN_THRESHOLDS, check_pdf_file
+from scripts.check_pdf_quality import check_pdf_file
 from templates.docx_resume_template import generate_resume
 from templates.layout_settings import LayoutSettings
 from templates.style_profiles import DEFAULT_STYLE, bounded_layouts, get_style
@@ -19,12 +19,6 @@ from templates.style_profiles import DEFAULT_STYLE, bounded_layouts, get_style
 # Checks that layout tuning can potentially fix (margins, page overflow).
 LAYOUT_FIXABLE_CHECKS = {
     "page_count", "bottom_margin", "top_margin", "side_margins", "text_geometry"
-}
-
-# Checks that require content changes — layout tuning cannot fix these.
-CONTENT_CHECKS = {
-    "page_size", "text_layer", "html_leak", "placeholder_content",
-    "section_completeness", "contact_info", "keyword_coverage",
 }
 
 
@@ -53,112 +47,11 @@ def _scales(layout: LayoutSettings) -> tuple[float, float, float, float]:
     )
 
 
-def _shrink_candidates() -> list[LayoutSettings]:
-    """Presets that progressively reduce layout params for overflowing content.
-
-    4-phase strategy: line_height first → font+line → compact deep → margins last.
-    """
-    return [
-        # Phase A: pure line-height compression (lowest visual cost)
-        LayoutSettings(line_height_scale=0.95),
-        LayoutSettings(line_height_scale=0.92),
-        LayoutSettings(line_height_scale=0.90),
-        LayoutSettings(line_height_scale=0.88),
-        # Phase B: line-height + font, spacing follows proportionally
-        LayoutSettings(font_size_scale=0.97, line_height_scale=0.92,
-                        section_spacing_scale=0.95, item_spacing_scale=0.93),
-        LayoutSettings(font_size_scale=0.95, line_height_scale=0.90,
-                        section_spacing_scale=0.92, item_spacing_scale=0.90),
-        LayoutSettings(font_size_scale=0.93, line_height_scale=0.88,
-                        section_spacing_scale=0.90, item_spacing_scale=0.87),
-        # Phase C: compact_mode + progressive deep compression
-        LayoutSettings(compact_mode=True),
-        LayoutSettings(compact_mode=True, font_size_scale=0.90, line_height_scale=0.86,
-                        section_spacing_scale=0.86, item_spacing_scale=0.82),
-        LayoutSettings(compact_mode=True, font_size_scale=0.88, line_height_scale=0.84,
-                        section_spacing_scale=0.84, item_spacing_scale=0.80),
-        LayoutSettings(compact_mode=True, font_size_scale=0.86, line_height_scale=0.82,
-                        section_spacing_scale=0.82, item_spacing_scale=0.78),
-        # Phase D: compact + margin tightening (last resort)
-        LayoutSettings(compact_mode=True, font_size_scale=0.90, line_height_scale=0.86,
-                        section_spacing_scale=0.86, item_spacing_scale=0.83,
-                        margin_top_mm=4.5, margin_bottom_mm=4.5),
-        LayoutSettings(compact_mode=True, font_size_scale=0.88, line_height_scale=0.84,
-                        section_spacing_scale=0.82, item_spacing_scale=0.80,
-                        margin_top_mm=4.2, margin_bottom_mm=4.2),
-        LayoutSettings(compact_mode=True, font_size_scale=0.86, line_height_scale=0.82,
-                        section_spacing_scale=0.80, item_spacing_scale=0.76,
-                        margin_top_mm=4.0, margin_bottom_mm=4.0),
-        LayoutSettings(compact_mode=True, font_size_scale=0.84, line_height_scale=0.80,
-                        section_spacing_scale=0.78, item_spacing_scale=0.74,
-                        margin_top_mm=4.0, margin_bottom_mm=4.0, margin_side_inch=0.55),
-    ]
-
-
-def _expand_candidates() -> list[LayoutSettings]:
-    """Presets that progressively increase font/spacing for sparse content."""
-    return [
-        LayoutSettings(font_size_scale=1.01, line_height_scale=1.02,
-                        section_spacing_scale=1.02, item_spacing_scale=1.02),
-        LayoutSettings(font_size_scale=1.02, line_height_scale=1.03,
-                        section_spacing_scale=1.04, item_spacing_scale=1.04),
-        LayoutSettings(font_size_scale=1.03, line_height_scale=1.04,
-                        section_spacing_scale=1.06, item_spacing_scale=1.06),
-        LayoutSettings(font_size_scale=1.04, line_height_scale=1.05,
-                        section_spacing_scale=1.08, item_spacing_scale=1.08),
-        LayoutSettings(font_size_scale=1.05, line_height_scale=1.05),
-        LayoutSettings(font_size_scale=1.08, line_height_scale=1.08,
-                        section_spacing_scale=1.10, item_spacing_scale=1.10),
-        LayoutSettings(font_size_scale=1.10, line_height_scale=1.12,
-                        section_spacing_scale=1.15, item_spacing_scale=1.15),
-        LayoutSettings(font_size_scale=1.15, line_height_scale=1.15,
-                        section_spacing_scale=1.20, item_spacing_scale=1.20),
-        LayoutSettings(font_size_scale=1.20, line_height_scale=1.20,
-                        section_spacing_scale=1.25, item_spacing_scale=1.25,
-                        margin_top_mm=6.0, margin_bottom_mm=6.0),
-    ]
-
-
 def _failed_checks(report: dict[str, Any]) -> set[str]:
     return {
         c["name"] for c in report.get("checks", [])
         if isinstance(c.get("name"), str) and c.get("passed") is False
     }
-
-
-def _diagnose_direction(report: dict[str, Any]) -> str:
-    """Return ``'shrink'``, ``'expand'``, or ``'pass'`` based on QC failures."""
-    # Preferred whitespace limits are advisories, not failed layout gates.
-    # Keep a valid default or explicit layout instead of replacing its styling
-    # just to chase the legacy 8 mm bottom-whitespace preference.
-    if report.get("verdict") == "PASS":
-        return "pass"
-    checks = {c["name"]: c for c in report.get("checks", [])}
-
-    page_count = checks.get("page_count", {}).get("detail", {}).get("count", 1)
-    if page_count > 1:
-        return "shrink"
-
-    bottom = checks.get("bottom_margin", {})
-    bottom_mm = bottom.get("detail", {}).get("bottom_mm")
-    if bottom_mm is not None:
-        if bottom_mm > DEFAULT_MARGIN_THRESHOLDS["max_bottom_mm"]:
-            return "expand"
-        if bottom.get("passed") is False:
-            return "shrink"
-
-    if _failed_checks(report) & LAYOUT_FIXABLE_CHECKS:
-        return "shrink"
-
-    return "pass"
-
-
-def _build_candidates(
-    max_trials: int, *, direction: str = "shrink",
-) -> list[LayoutSettings]:
-    """Build candidate layouts for the diagnosed direction."""
-    presets = _expand_candidates() if direction == "expand" else _shrink_candidates()
-    return presets[: max(0, max_trials)]
 
 
 def _readability_score(layout: LayoutSettings) -> float:
@@ -170,19 +63,7 @@ def _compression_distance(layout: LayoutSettings) -> float:
     return sum(abs(1.0 - v) for v in _scales(layout))
 
 
-def _bottom_margin_preference_score(report: dict[str, Any]) -> float:
-    checks = {check["name"]: check for check in report.get("checks", [])}
-    bottom_mm = checks.get("bottom_margin", {}).get("detail", {}).get("bottom_mm")
-    if bottom_mm is None:
-        return float("-inf")
-    minimum = DEFAULT_MARGIN_THRESHOLDS["min_bottom_mm"]
-    maximum = DEFAULT_MARGIN_THRESHOLDS["max_bottom_mm"]
-    if minimum <= bottom_mm <= maximum:
-        return 0.0
-    return -min(abs(bottom_mm - minimum), abs(bottom_mm - maximum))
-
-
-def score_trial(trial: AutoFitTrial) -> tuple[int, int, int, float, float, float]:
+def score_trial(trial: AutoFitTrial) -> tuple[int, int, int, float, float]:
     """Score trial; higher tuple is better.
 
     Priority: pass > fewer layout failures > fewer total > closer to default > higher readability.
@@ -192,14 +73,9 @@ def score_trial(trial: AutoFitTrial) -> tuple[int, int, int, float, float, float
         1 if trial.report.get("verdict") == "PASS" else 0,
         -len(failed & LAYOUT_FIXABLE_CHECKS),
         -len(failed),
-        _bottom_margin_preference_score(trial.report),
         -_compression_distance(trial.layout),
         _readability_score(trial.layout),
     )
-
-
-def _run_quality_check(pdf_path: Path) -> dict[str, Any]:
-    return check_pdf_file(pdf_path)
 
 
 def _run_trial(content: dict[str, Any], output_file: str, layout: LayoutSettings, trial_dir: Path, *, style: str = DEFAULT_STYLE) -> AutoFitTrial:
@@ -227,33 +103,13 @@ def auto_fit_layout(
         first_layout = profile.resolve_layout(hint_layout)
         first_trial = _run_trial(content, output_file, first_layout, base_temp / "trial-1", style=style)
 
-        direction = _diagnose_direction(first_trial.report)
-        if direction == "pass":
-            return AutoFitResult(best_layout=first_trial.layout, best_report=first_trial.report, trials_run=1)
-
-        if style == DEFAULT_STYLE:
-            trials = [first_trial]
-            for candidate in bounded_layouts(profile, first_layout)[:max_trials - 1]:
-                trial = _run_trial(content, output_file, candidate, base_temp / f"trial-{len(trials) + 1}", style=style)
-                trials.append(trial)
-                if trial.report.get("verdict") == "PASS":
-                    return AutoFitResult(trial.layout, trial.report, len(trials))
-            best = max(trials, key=score_trial)
-            return AutoFitResult(best.layout, best.report, len(trials))
-
-        # Phase 2: Directional candidates
-        candidates = [
-            candidate
-            for candidate in _build_candidates(
-                max_trials - 1, direction=direction
-            )
-            if candidate != first_layout
-        ]
-
-        trials = [first_trial] + [
-            _run_trial(content, output_file, layout, base_temp / f"trial-{i}", style=style)
-            for i, layout in enumerate(candidates, start=2)
-        ]
-
-    best = max(trials, key=score_trial)
-    return AutoFitResult(best_layout=best.layout, best_report=best.report, trials_run=len(trials))
+        if first_trial.report.get("verdict") == "PASS":
+            return AutoFitResult(first_trial.layout, first_trial.report, 1)
+        trials = [first_trial]
+        for candidate in bounded_layouts(profile, first_layout)[:max_trials - 1]:
+            trial = _run_trial(content, output_file, candidate, base_temp / f"trial-{len(trials) + 1}", style=style)
+            trials.append(trial)
+            if trial.report.get("verdict") == "PASS":
+                return AutoFitResult(trial.layout, trial.report, len(trials))
+        best = max(trials, key=score_trial)
+        return AutoFitResult(best.layout, best.report, len(trials))

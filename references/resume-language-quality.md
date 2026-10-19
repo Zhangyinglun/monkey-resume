@@ -14,11 +14,18 @@ actual rendering rather than imposing a verb dictionary or word-count quota.
    than 50%** of its available text width, including single-line bullets. Measure
    from the bullet text's left edge (the hanging-indent text edge, excluding the
    marker) to the paragraph's right text boundary, not half the page or half the
-   preceding line. Check both actual DOCX and same-source PDF previews. At exactly
-   50% the rule is not met. Rewrite a sparse ending by shortening to fewer lines
-   or adding useful supported detail about the same contribution; keep readable
-   fonts and normal spacing. Padding, extra unrelated work and forced line breaks
-   are not fixes.
+   preceding line. Check every bullet in reading order in the direct DOCX view
+   and also the PDF when delivering it, not only endings with one to three words.
+   At exactly 50% the rule is not met. For each sparse ending, consider both edits:
+   add useful supported detail about the same contribution until the final line
+   exceeds half width, or shorten the wording enough to remove the final line
+   and bring its content onto the preceding line. Choose the clearer, faithful
+   version; preserve the contribution, outcome and metric scope. For a sparse
+   single-line bullet, consider useful supported detail; shortening cannot remove
+   its only line. Keep readable fonts and normal spacing. Padding, extra unrelated
+   work and forced line breaks are not fixes. Re-render after editing and check
+   every bullet again, including the new final line of a shortened bullet; a
+   proposed wording change alone does not establish that the ending now passes.
 2. **One contribution plus its result.** Center each bullet on one action or
    coherent contribution and its supported outcome. Include mechanisms only when
    they explain that contribution. Several steps of one recovery workflow can
@@ -36,12 +43,25 @@ actual rendering rather than imposing a verb dictionary or word-count quota.
    when its removal would materially broaden a metric or responsibility. If a
    claim cannot be made both clear and faithful, choose another supported claim
    or ask for clarification; brevity never upgrades integration to administration.
-4. **Lead with an action verb.** Start every experience/project bullet and every
-   additional sentence within it with a verb describing the candidate's action,
+4. **Lead with a precise, varied action verb.** Start every experience/project
+   bullet and every additional sentence within it with a verb describing the candidate's action,
    such as “Built,” “Diagnosed” or “Led.” Attach a result as a clause of that action
    rather than a separate sentence beginning with a metric or “The platform.”
    Headers and skill labels are not experience sentences and need not
    follow this pattern. Choose the right verb, not one from a fixed approved list.
+   Before finalizing, list each bullet's location and opening action verb in
+   reading order. Compare repeated verbs within each job/project and across the
+   whole resume, paying particular attention to adjacent bullets and clusters
+   of generic openings such as “Built.” Treat capitalization or tense changes as
+   the same verb; an opening modifier does not hide the action verb.
+   Rewrite monotonous repetition using the specific evidenced action, such as
+   diagnosing, automating or optimizing, while preserving ownership and outcome.
+   Recheck the revised wording against evidence and the rendered-line rule.
+   Repetition may remain when the same verb is the clearest accurate description
+   of distinct work; record that reason in review. Every opening must be checked,
+   but verbs need not be unique and there is no fixed frequency limit. Unjustified
+   repetitive openings that admit a clear, faithful revision fail this rule;
+   forced synonyms or stronger ownership claims are not fixes.
 5. **Name recognizable products directly.** Use a well-known product/platform
    name when the evidence establishes it, rather than an anonymous description.
    For example, prefer “Built authentication services for Azure…” over “Built

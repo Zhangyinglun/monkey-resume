@@ -5,8 +5,8 @@ and heuristic semantic guarantees with model-led full-source understanding and
 one draft. Programs preserve immutable source bytes/located blocks, commit
 Ledger/Profile/source registry atomically, and compute evidence bindings and
 fingerprints. They check traceability, versions and physical output, not semantic
-entailment or important-experience coverage. This supersedes ADRs 0001–0003 and
-updates ADR 0004; their original text remains as historical context.
+entailment or important-experience coverage. ADR 0004 defines the measured
+physical QA boundary.
 
 The alternative was to keep regex/keyword/metric gates and compatibility adapters.
 Those obscure scope errors and encourage maintaining multiple authoring artifacts.
@@ -17,8 +17,16 @@ and `omissions`; the pure display projection remains separate from evidence IDs.
 `prepare` freezes candidate context, draft, compiled result, DOCX/PDF hashes,
 author identity and output filename, then supplies a pending review template.
 Review first freezes blind JD/visible-resume reading, then checks all original
-evidence, corrections, assertion scope and important omissions. Actual DOCX and
-same-source PDF previews join this content review stage. `publish` requires a
+evidence, corrections, assertion scope and important omissions. A program-enumerated
+fact checklist covers personal information,
+education, employment, skills and optional sections. Each section's independent
+review records accuracy and completeness against full evidence, including omitted
+whole entries. Publication enforces exact path coverage and passing review records;
+it does not infer semantic truth from strings or status flags. Direct viewing
+of the exact DOCX in a document reader joins this content review stage; record
+the reader name/version and actual observations. PDF-derived images cannot
+fulfill this check. PDF visual review is additionally required for PDF delivery.
+`publish` requires a
 complete current independent review, no blocking findings, actual visual checks
 and measured readable single-page A4 QA. Reviewer independence is declared host
 provenance, not cryptographic proof; self-review cannot approve publication.
@@ -30,7 +38,8 @@ retains its fixed PDF and review. Layout auto-fit changes format only.
 
 Document imports are idempotent. Candidate responses are distinct source events
 with optional stable event IDs for retry deduplication; explicit source-backed
-reactivation/supersession preserves correction history. Legacy caches are refused,
-requiring a deliberately new workspace or separately authorized migration, not a
-shipped migration CLI or destructive reset. This deliberately breaks old runtime
-contracts to make evidence and publication boundaries explicit.
+reactivation/supersession preserves correction history. Only the current
+cache/draft/candidate contracts and professional-v3 Arial style are supported.
+Unsupported caches require a deliberately new external workspace while retaining
+original data. Migration and publication of old candidates are outside the runtime
+contract. Existing accepted artifacts remain preserved externally.

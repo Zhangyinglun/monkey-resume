@@ -1,4 +1,4 @@
-"""Behavioral coverage for versioned styles and bounded layout tuning."""
+"""Behavioral coverage for the current style and bounded layout tuning."""
 from __future__ import annotations
 
 import copy
@@ -13,10 +13,9 @@ from docx import Document
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml.ns import qn
 
-from scripts.extract_resume_text import extract_docx_text, extract_resume_blocks
+from scripts.extract_resume_text import extract_docx_text
 from scripts.layout_auto_tuner import auto_fit_layout
 from templates.docx_resume_template import generate_docx
-from templates.layout_settings import DOCX_DEFAULT_SETTINGS
 from templates.style_profiles import bounded_layouts, get_style
 from tests.sample_data import sample_resume
 from tests.test_pdf_pipeline import quality_report
@@ -27,22 +26,19 @@ class StyleProfileTests(unittest.TestCase):
         resume = sample_resume()
         resume["projects"] = [{"name": "Example Agent", "bullets": ["Improved model compatibility."]}]
         resume["project_heading"] = "Open Source Projects"
-        for style in ("professional-v2", "legacy-v1"):
-            with self.subTest(style=style), tempfile.TemporaryDirectory() as directory:
-                doc = Document(generate_docx("open-source.docx", resume, directory, style=style))
-                texts = [p.text for p in doc.paragraphs]
-                self.assertIn("Open Source Projects", texts)
-                self.assertNotIn("Projects", texts)
-                self.assertNotIn("PROJECTS", texts)
-
-    def test_legacy_retains_approved_geometry_and_headings(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
-            doc = Document(generate_docx("old.docx", sample_resume(), directory, style="legacy-v1"))
-        self.assertEqual(doc.styles["Normal"].font.size.pt, 10.5)
-        self.assertEqual(doc.paragraphs[0].runs[0].font.size.pt, 16.5)
-        self.assertEqual(doc.paragraphs[2].text, "PROFESSIONAL EXPERIENCE")
-        self.assertAlmostEqual(doc.sections[0].top_margin.mm, 12.7)
-        self.assertEqual(get_style("legacy-v1").layout, DOCX_DEFAULT_SETTINGS)
+            doc = Document(generate_docx("open-source.docx", resume, directory))
+            texts = [p.text for p in doc.paragraphs]
+            self.assertIn("Open Source Projects", texts)
+            self.assertNotIn("Projects", texts)
+            self.assertNotIn("PROJECTS", texts)
+
+    def test_retired_styles_are_rejected_without_creating_artifacts(self) -> None:
+        for style in ("legacy-v1", "professional-v2"):
+            with self.subTest(style=style), tempfile.TemporaryDirectory() as directory:
+                with self.assertRaisesRegex(ValueError, "Unknown resume style"):
+                    generate_docx("retired.docx", sample_resume(), directory, style=style)
+                self.assertEqual(list(Path(directory).iterdir()), [])
 
     def test_new_style_is_black_left_aligned_and_has_no_layout_tables(self) -> None:
         resume = sample_resume()
@@ -60,17 +56,21 @@ class StyleProfileTests(unittest.TestCase):
         self.assertIn("Skills", [p.text for p in doc.paragraphs])
         self.assertNotIn("Summary", [p.text for p in doc.paragraphs])
 
-    def test_dates_anchor_to_right_margin_and_keep_reading_boundaries(self) -> None:
+    def test_portable_style_preserves_links_and_standard_date_tabs(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
-            path = Path(generate_docx("dates.docx", sample_resume(), directory))
+            path = Path(generate_docx("portable.docx", sample_resume(), directory))
             doc = Document(path)
-            row = next(p for p in doc.paragraphs if p.text.startswith("Example Corp"))
-            tabs = list(row._p.iter(qn("w:ptab")))
-            self.assertEqual(len(tabs), 1)
-            self.assertEqual(tabs[0].get(qn("w:alignment")), "right")
-            self.assertEqual(tabs[0].get(qn("w:relativeTo")), "margin")
-            self.assertIn("Example Corp\t 2020–Present", extract_docx_text(path))
-            self.assertTrue(any("Example Corp\t 2020–Present" in block["text"] for block in extract_resume_blocks(path)))
+            text = extract_docx_text(path)
+        self.assertEqual(get_style().name, "professional-v3")
+        self.assertFalse(list(doc.element.iter(qn("w:ptab"))))
+        self.assertIn("Example Corp\t2020–Present", text)
+        links = list(doc.element.iter(qn("w:hyperlink")))
+        self.assertTrue(links)
+        for run in doc.element.iter(qn("w:r")):
+            fonts = run.find("./" + qn("w:rPr") + "/" + qn("w:rFonts"))
+            self.assertIsNotNone(fonts)
+            self.assertEqual(fonts.get(qn("w:ascii")), "Arial")
+            self.assertFalse(any(attr.lower().endswith("theme") for attr in fonts.attrib))
 
     def test_unreadable_override_fails_before_writing(self) -> None:
         profile = get_style()
@@ -84,6 +84,19 @@ class StyleProfileTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     generate_docx("bad.docx", sample_resume(), directory, layout)
                 self.assertEqual(list(Path(directory).iterdir()), [])
+
+    def test_long_heading_moves_complete_date_to_its_own_right_aligned_line(self) -> None:
+        resume = sample_resume()
+        company = "Example International Infrastructure and Distributed Systems Engineering Corporation"
+        dates = "September 2020 - September 2026"
+        resume["experience"][0].update(company=company, dates=dates)
+        with tempfile.TemporaryDirectory() as directory:
+            doc = Document(generate_docx("long.docx", resume, directory))
+        company_row = next(i for i, p in enumerate(doc.paragraphs) if p.text == company)
+        date = doc.paragraphs[company_row + 1]
+        self.assertEqual(date.text, dates)
+        self.assertEqual(date.alignment, WD_ALIGN_PARAGRAPH.RIGHT)
+        self.assertTrue(doc.paragraphs[company_row].paragraph_format.keep_with_next)
 
     def test_compact_and_all_trials_respect_font_floor_and_caller_margins(self) -> None:
         profile = get_style()
@@ -139,7 +152,7 @@ class StyleProfileTests(unittest.TestCase):
         self.assertEqual(snapshot["tokens"]["accent_color"], [0, 0, 0])
 
     def test_qa_uses_selected_font_threshold(self) -> None:
-        self.assertEqual(quality_report(min_font_pt=10.0)["verdict"], "PASS")
+        self.assertEqual(quality_report(min_font_pt=10.0)["verdict"], "NEED-ADJUSTMENT")
         self.assertEqual(quality_report(min_font_pt=10.0, minimum_font_pt=10.5)["verdict"], "NEED-ADJUSTMENT")
         self.assertEqual(quality_report(min_font_pt=10.5, minimum_font_pt=10.5)["verdict"], "PASS")
 

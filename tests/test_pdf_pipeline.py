@@ -1,15 +1,11 @@
 from __future__ import annotations
 
-import contextlib
-import io
 import tempfile
 import unittest
 from pathlib import Path
 
-import pdfplumber
-
-from scripts.check_pdf_quality import build_quality_report, check_pdf_file
-from templates.modern_resume_template import generate_resume
+from scripts.check_pdf_quality import build_quality_report
+from templates.docx_resume_template import generate_docx
 from tests.sample_data import sample_resume
 
 
@@ -24,6 +20,7 @@ def quality_report(**changes: object) -> dict:
         "margins": {"top": 25.0, "bottom": 40.0, "left": 30.0, "right": 30.0},
         "missing_sections": [],
         "contact": {"email": True, "phone": False, "linkedin": False},
+        "contact_layout": {"measured": True, "line_count": 1, "expected": 1},
         "missing_keywords": [],
         "provided_keywords": [],
         "layout_warnings": [],
@@ -60,6 +57,10 @@ class PdfQualityPolicyTests(unittest.TestCase):
             {"width_mm": 180.0},
             {"min_font_pt": 6.0},
             {"bounds_findings": [{"page": 1, "text": "clipped"}]},
+            {"contact_layout": {"measured": True, "line_count": 2}},
+            {"contact_layout": {"measured": True, "line_count": 0}},
+            {"contact_layout": None},
+            {"contact_layout": {"measured": False, "line_count": 1}},
         ):
             with self.subTest(changes=changes):
                 self.assertEqual(quality_report(**changes)["verdict"], "NEED-ADJUSTMENT")
@@ -77,32 +78,13 @@ class PdfRendererTests(unittest.TestCase):
         resume["summary"] = ""
         with tempfile.TemporaryDirectory() as directory:
             with self.assertRaisesRegex(ValueError, "summary"):
-                generate_resume("resume.pdf", resume, directory)
+                generate_docx("resume.docx", resume, directory)
             self.assertEqual(list(Path(directory).iterdir()), [])
 
     def test_renderer_rejects_skill_package_output(self) -> None:
         root = Path(__file__).resolve().parents[1]
         with self.assertRaisesRegex(ValueError, "outside the Skill package"):
-            generate_resume("resume.pdf", sample_resume(), base_dir=root / "resume_output")
-
-    def test_renderer_escapes_markup_and_accepts_array_skills(self) -> None:
-        resume = sample_resume()
-        resume["experience"][0]["bullets"][0] = "Built R&D services with Java Map<K,V> and C++ & C#."
-        with tempfile.TemporaryDirectory() as directory:
-            with contextlib.redirect_stdout(io.StringIO()):
-                output = Path(generate_resume("resume.pdf", resume, directory))
-            with pdfplumber.open(output) as pdf:
-                text = "\n".join(page.extract_text() or "" for page in pdf.pages)
-            self.assertIn("Map<K,V>", text)
-            self.assertIn("R&D", text)
-            self.assertIn("Python", text)
-            self.assertNotIn("SUMMARY", text)
-            self.assertEqual(len(pdf.pages), 1)
-            report = check_pdf_file(output)
-            self.assertEqual(report["verdict"], "PASS")
-            sections = next(c for c in report["checks"] if c["name"] == "section_completeness")
-            self.assertTrue(sections["passed"], sections)
-
+            generate_docx("resume.docx", sample_resume(), base_dir=root / "resume_output")
 
 if __name__ == "__main__":
     unittest.main()

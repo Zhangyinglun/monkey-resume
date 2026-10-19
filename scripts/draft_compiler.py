@@ -98,7 +98,7 @@ def _validate_target(target: dict) -> None:
 
 
 def _validate_display(resume: dict) -> None:
-    validate_resume_content(resume)
+    validate_resume_content(resume, require_non_empty=True)
     unknown = set(resume) - {"name", "contact", "project_heading", *_SECTIONS}
     if unknown:
         raise ValueError(f"unknown resume display fields: {sorted(unknown)}")
@@ -109,7 +109,7 @@ def _validate_display(resume: dict) -> None:
                 raise ValueError(f"unknown display fields in {section}[{i}]")
             if section == "skills":
                 _text(item["category"], f"skills[{i}].category")
-                # List-only avoids legacy comma-string paths and normalization drift.
+                # Skill terms use item-level evidence paths.
                 _array(item["items"], f"skills[{i}].items")
                 for j, text in enumerate(item["items"]):
                     _text(text, f"skills[{i}].items[{j}]")

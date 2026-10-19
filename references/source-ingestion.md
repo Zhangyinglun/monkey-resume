@@ -115,6 +115,48 @@ not revive superseded or revoked claims. The host model must detect semantic
 conflicts and compare proposed meaning to the original; quote validation alone
 cannot establish entailment.
 
+## Resume feedback preferences
+
+For user-requested resume changes, store feedback in the existing
+`profile.preferences.resume_feedback` array inside `cache/candidate-state.json`.
+Use the import proposal's `preferences` object and a real `candidate_response`
+source; this is a host-authored preference convention under the current schema,
+not a separate cache file or a program-enforced feedback schema.
+
+Each entry contains:
+
+- `source_id` and `block_ids`: the actual prepared answer source and located blocks.
+- `original_excerpt`: the exact user request from those blocks.
+- `instruction`: the actionable change, preserving the user's meaning.
+- `scope`: `target` by default, or `candidate` when the user explicitly requests
+  reuse across resumes, such as "use this wording style from now on".
+- `target`: required for target scope. Retain the known job URL and target metadata;
+  without a unique job URL, retain literal `original_jd` to identify the target,
+  including the preserved outreach purpose when no JD exists. A mutable draft
+  path or company name alone does not identify a target.
+
+Append to the existing array while preserving all earlier entries. The cache
+merges preferences at the top level only: when submitting `resume_feedback`,
+include the complete existing array plus the new entry, not just the new entry.
+Keep unrelated preference keys intact. Reusing a committed answer event is a
+no-op; a new user request is a new event even if its wording repeats an older one.
+
+At use time, apply only matching target entries and candidate-wide entries.
+An explicit target instruction takes precedence over a general preference for
+that target; a later explicit change supersedes an earlier conflicting instruction
+within the same scope. Keep old requests as history. Do not generalize a one-job
+deletion or shortening request into a permanent ban on that experience. Clarify
+genuinely ambiguous conflicts rather than silently choosing a meaning.
+
+Pure wording, selection and layout preferences need no achievement claims.
+Factual corrections in the same request must also update the Ledger through the
+source-backed correction rules above. Approval of phrasing alone does not verify
+the facts it expresses. The original request is preserved as a source even when
+it creates no claims; its blocks may therefore appear in `unparsed_blocks`.
+Account for them as preference feedback in the report, without fabricating claims
+to clear that diagnostic. Reload and verify the committed preference and new
+context before continuing `resume-revisions.md`.
+
 ## Commit and report
 
 ```bash
@@ -131,5 +173,5 @@ IDs, added/existing/superseded counts, unresolved conflicts and unparsed blocks.
 important unparsed text and account for it before claiming the cache is complete.
 
 Old-schema caches are not loaded by this workflow. Use a deliberately new external
-workspace or a separately authorized one-time migration; never delete the old
+workspace; migration is outside the runtime contract. Never delete the old
 candidate cache or accepted history to silence a schema error.

@@ -8,11 +8,13 @@ import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from scripts.candidate_cache import commit_import, load_candidate_context, prepare_import
 from scripts.draft_compiler import compile_draft
 from scripts.generate_final_resume import ReviewNotReady, prepare_candidate, publish_candidate
-from templates.docx_resume_template import require_carlito
+from templates.document_fonts import resolve_font_files
+from templates.style_profiles import DEFAULT_STYLE, get_style
 
 
 def ingest_notes(root: Path) -> tuple[Path, dict, dict]:
@@ -23,7 +25,8 @@ def ingest_notes(root: Path) -> tuple[Path, dict, dict]:
         "Employer: Northstar Cloud\nRole: Software Engineer\nDates: 2022–Present\n"
         "Project: Queue Tools\nBuilt queue recovery using Python.\n"
         "School: Example University\nDegree: B.S. Computer Science\n"
-        "Education dates: 2018\nProject Queue Tools belongs to Northstar Cloud.\n",
+        "Education dates: 2018\nProject Queue Tools belongs to Northstar Cloud.\n"
+        "Work location: Seattle\n",
         encoding="utf-8",
     )
     prepared = prepare_import(workspace, source)
@@ -39,6 +42,7 @@ def ingest_notes(root: Path) -> tuple[Path, dict, dict]:
         ("company", "job", "company", "Northstar Cloud", 4),
         ("title", "job", "title", "Software Engineer", 5),
         ("dates", "job", "dates", "2022–Present", 6),
+        ("location", "job", "location", "Seattle", 13),
         ("work", "queue", "work", "Built queue recovery using Python.", 8),
         ("school", "edu", "school", "Example University", 9),
         ("degree", "edu", "degree", "B.S. Computer Science", 10),
@@ -95,6 +99,7 @@ def ingest_notes(root: Path) -> tuple[Path, dict, dict]:
                     "company": "Northstar Cloud",
                     "title": "Software Engineer",
                     "dates": "2022–Present",
+                    "location": "Seattle",
                     "bullets": ["Built queue recovery using Python."],
                 }
             ],
@@ -116,6 +121,23 @@ def ingest_notes(root: Path) -> tuple[Path, dict, dict]:
 
 
 class ModelFirstIntegrationTests(unittest.TestCase):
+    def test_missing_required_fact_blocks_prepare_before_render_and_preserves_accepted(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            workspace, draft, _ = ingest_notes(Path(directory))
+            draft["resume"]["experience"][0].pop("location")
+            path = workspace / "draft.json"
+            path.write_text(json.dumps(draft), encoding="utf-8")
+            output = workspace / "resume_output"
+            output.mkdir()
+            prior = output / "resume.docx"
+            prior.write_bytes(b"previously accepted")
+            with patch("scripts.generate_final_resume.generate_resume") as render:
+                with self.assertRaisesRegex(ValueError, r"experience\[0\].*location"):
+                    prepare_candidate(workspace, path)
+                render.assert_not_called()
+            self.assertEqual(prior.read_bytes(), b"previously accepted")
+            self.assertFalse((workspace / "resume_history").exists())
+
     def test_information_notes_can_compile_without_regex_resume_or_source_rewriting(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             workspace, draft, _ = ingest_notes(Path(directory))
@@ -138,8 +160,9 @@ class ModelFirstIntegrationTests(unittest.TestCase):
 class RealCandidateIntegrationTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
+        cls.render_style = DEFAULT_STYLE
         try:
-            require_carlito()
+            resolve_font_files(get_style(cls.render_style).font_family)
         except (RuntimeError, OSError, subprocess.SubprocessError) as exc:
             raise unittest.SkipTest(str(exc)) from exc
 
@@ -148,7 +171,7 @@ class RealCandidateIntegrationTests(unittest.TestCase):
             workspace, draft, _ = ingest_notes(Path(directory))
             path = workspace / "draft.json"
             path.write_text(json.dumps(draft), encoding="utf-8")
-            prepared = prepare_candidate(workspace, path, author_id="synthetic-test-writer")
+            prepared = prepare_candidate(workspace, path, author_id="synthetic-test-writer", style=self.render_style)
             self.assertTrue(prepared["qa_passed"], prepared["physical_qa"])
             self.assertFalse((workspace / "resume_output").exists())
             self.assertFalse((workspace / "resume_history").exists())
@@ -164,6 +187,7 @@ class RealCandidateIntegrationTests(unittest.TestCase):
                     "requirements": [{"original_quote": draft["target"]["original_jd"]}],
                 },
                 evidence_review={
+                    **review["evidence_review"],
                     "status": "complete",
                     "context_id": review["context_id"],
                     "assertion_review": "Synthetic test fixture; not real review.",
@@ -174,6 +198,13 @@ class RealCandidateIntegrationTests(unittest.TestCase):
                     "identifier": "synthetic-test-reviewer",
                 },
             )
+            for result in review["evidence_review"]["fact_review"].values():
+                result.update(
+                    status="pass",
+                    checked_paths=list(result["expected_paths"]),
+                    accuracy_review="Synthetic test fixture; not real review.",
+                    completeness_review="Synthetic test fixture; not real review.",
+                )
             review["content"].update(
                 status="complete",
                 verdict="pass",
@@ -181,7 +212,10 @@ class RealCandidateIntegrationTests(unittest.TestCase):
                 reviewer_id="synthetic-test-reviewer",
             )
             review["visual"].update(
-                status="pass", pages=[1], docx_preview_inspected=True, pdf_preview_inspected=True
+                status="pass", method="direct_docx", pages=[1],
+                reader={"name": "Synthetic reader", "version": "test-only"},
+                observations="Synthetic direct-DOCX observation; tests gate mechanics only.",
+                docx_preview_inspected=True, pdf_preview_inspected=True,
             )
             accepted = publish_candidate(
                 workspace, prepared["candidate_id"], review, output_format="both"
@@ -206,7 +240,7 @@ class RealCandidateIntegrationTests(unittest.TestCase):
             workspace, draft, report = ingest_notes(Path(directory))
             path = workspace / "draft.json"
             path.write_text(json.dumps(draft), encoding="utf-8")
-            prepared = prepare_candidate(workspace, path)
+            prepared = prepare_candidate(workspace, path, style=self.render_style)
             output = workspace / "resume_output"
             output.mkdir()
             prior = output / "resume.docx"

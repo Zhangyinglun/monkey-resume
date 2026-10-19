@@ -133,7 +133,7 @@ Action or contribution + specific system/scope + method (if useful) + supported 
 - 无占位符、HTML 泄漏、裁切或重叠；
 - 阅读顺序和视觉层级经人工渲染检查。
 
-`%` 在 LaTeX 源码中需要转义是 LaTeX 语法事实，但当前项目使用 ReportLab；因此它不是本项目的 ATS 规则，也不应进入当前实现计划。[PROJECT DECISION]
+`%` 在 LaTeX 源码中需要转义是 LaTeX 语法事实，但当前项目使用 DOCX → LibreOffice PDF；因此它不是本项目的 ATS 规则，也不应进入当前实现计划。[PROJECT DECISION]
 
 ## 5. 开源 Prompt 与实现模式
 
