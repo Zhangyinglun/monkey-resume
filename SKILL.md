@@ -83,6 +83,9 @@ python3 "$MONKEY_RESUME_DIR/scripts/draft_compiler.py" init \
 Read `references/resume-working-schema.md` for the four-field draft contract.
 Populate `target.requirements`; keep known company/role/job URL in `target`,
 leaving unknown metadata absent.
+For recruiter outreach without a JD, preserve the outreach and candidate's stated
+purpose as `original_jd`; do not invent a team, specialization or requirements.
+Keep a broad engineering profile and known target metadata only.
 
 ### 2. Match against the full cache
 
@@ -109,6 +112,13 @@ the resume has no Summary section or field. Abbreviate secondary details within
 a contribution, while retaining separate strong relevant work such as technical
 leadership, telemetry, diagnostics and operational automation.
 Record specific reasons for important omitted contributions in `omissions`.
+
+Read `references/optional-modules.md` when selecting open-source contributions,
+patents, publications, awards or certifications, or distilling feedback into
+reusable rules versus personal cache/master-document updates. Choose modules for
+evidence value; preserve substantive contribution while removing PR bookkeeping
+and implementation trivia. Use `resume.project_heading: "Open Source Projects"`
+when the selected projects are all open-source contributions.
 
 Write complete display text in `resume` and source references in `evidence_links`.
 Projects can appear under their evidenced employer, and skills can use multiple
@@ -174,6 +184,7 @@ not an Accepted Resume. Failures preserve previous accepted files and history.
 - Draft fields and bindings: `references/resume-working-schema.md`.
 - Matching: `references/ats-keywords-strategy.md`.
 - Writing: `references/resume-language-quality.md`, `references/prompt-recipes.md`.
+- Optional modules and feedback reuse: `references/optional-modules.md`.
 - Review and delivery: `references/recruiter-review-protocol.md`,
   `references/docx-output.md`, `references/execution-checklist.md`.
 - History maintenance: `references/resume-generation-records.md`.

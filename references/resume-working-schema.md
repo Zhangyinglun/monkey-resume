@@ -34,6 +34,12 @@ empty scaffold content is not acceptable candidate content.
 - `resume`: pure display fields `name`, `contact`, `skills`,
   `experience`, `education`; optional projects/certifications/awards. Skills use
   `{category, items: [strings]}`. Internal IDs never appear inside display text.
+- Optional `resume.project_heading` is presentation metadata: use `Projects`
+  (the default when absent) or `Open Source Projects`. It requires nonempty
+  `projects`; use the open-source title only when every selected project is an
+  evidenced open-source contribution. Do not add an evidence link for the title;
+  the compiler binds its presentation entry to the project entries and includes
+  it in draft/resume fingerprints. Never patch a frozen DOCX to rename a section.
 - `evidence_links`: display positions map to supporting claim IDs. Structural
   sections also declare their exact entity anchors.
 - `omissions`: important omitted claims and specific editorial reasons. Not every

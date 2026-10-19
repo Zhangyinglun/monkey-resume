@@ -23,6 +23,18 @@ from tests.test_pdf_pipeline import quality_report
 
 
 class StyleProfileTests(unittest.TestCase):
+    def test_open_source_heading_renders_without_artifact_postprocessing(self) -> None:
+        resume = sample_resume()
+        resume["projects"] = [{"name": "Example Agent", "bullets": ["Improved model compatibility."]}]
+        resume["project_heading"] = "Open Source Projects"
+        for style in ("professional-v2", "legacy-v1"):
+            with self.subTest(style=style), tempfile.TemporaryDirectory() as directory:
+                doc = Document(generate_docx("open-source.docx", resume, directory, style=style))
+                texts = [p.text for p in doc.paragraphs]
+                self.assertIn("Open Source Projects", texts)
+                self.assertNotIn("Projects", texts)
+                self.assertNotIn("PROJECTS", texts)
+
     def test_legacy_retains_approved_geometry_and_headings(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             doc = Document(generate_docx("old.docx", sample_resume(), directory, style="legacy-v1"))

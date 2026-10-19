@@ -110,8 +110,8 @@ def generate_docx(output_file: str, content_dict: dict[str, Any], base_dir: str,
             Run(element, p).font.size = Pt(size * font_scale)
         return p
 
-    def heading(title: str) -> None:
-        p = paragraph(profile.heading(title), design_tokens.section_font_size, bold=True, after=design_tokens.section_space_after,
+    def heading(title: str, *, literal: bool = False) -> None:
+        p = paragraph(title if literal else profile.heading(title), design_tokens.section_font_size, bold=True, after=design_tokens.section_space_after,
                       keep=True, leading=design_tokens.section_leading, justify=False)
         p.paragraph_format.space_before = Pt(design_tokens.section_space_before * section_spacing_scale)
         for run in p.runs:
@@ -166,7 +166,7 @@ def generate_docx(output_file: str, content_dict: dict[str, Any], base_dir: str,
             add_bullet(bullet)
     for key, title, extra in [('projects', 'PROJECTS', 'tech')]:
         if content_dict.get(key):
-            heading(title)
+            heading(content_dict.get('project_heading', title), literal='project_heading' in content_dict)
             for item in content_dict[key]:
                 row(' | '.join(str(item[k]) for k in ('name', extra) if item.get(k)), item.get('dates', ''))
                 for bullet in item.get('bullets', []):

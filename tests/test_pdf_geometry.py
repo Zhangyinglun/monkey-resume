@@ -21,6 +21,18 @@ from scripts.check_pdf_geometry import (
 
 
 class PdfGeometryTests(unittest.TestCase):
+    def test_open_source_heading_separates_project_geometry_from_experience(self) -> None:
+        texts = ["Experience", "Example Corp", "• Built services.",
+                 "Open Source Projects", "Example Agent", "• Improved reliability."]
+        lines = [{"text": text, "top": 20.0 + 15 * i, "bottom": 30.0 + 15 * i,
+                  "x0": 50.0, "x1": 250.0, "words": text.split()}
+                 for i, text in enumerate(texts)]
+        resume = {"experience": [{"company": "Example Corp", "bullets": ["Built services."]}],
+                  "projects": [{"name": "Example Agent", "bullets": ["Improved reliability."]}]}
+        geometry = _section_geometry(lines, resume)
+        self.assertEqual(geometry["projects"]["line_count"], 2)
+        self.assertEqual(geometry["experience[0]"]["line_count"], 2)
+
     def test_detects_sparse_trailing_line_from_rendered_coordinates(self) -> None:
         lines = [
             {

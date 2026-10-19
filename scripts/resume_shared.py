@@ -154,6 +154,12 @@ def validate_resume_content(payload: dict[str, Any], *, require_non_empty: bool 
     if missing:
         raise ValueError(f"Input content missing required fields: {', '.join(missing)}")
 
+    if "project_heading" in payload:
+        if payload["project_heading"] not in ("Projects", "Open Source Projects"):
+            raise ValueError("`project_heading` must be Projects or Open Source Projects.")
+        if not payload.get("projects"):
+            raise ValueError("`project_heading` requires a non-empty projects section.")
+
     for key in ("name", "contact"):
         value = payload[key]
         if not isinstance(value, str):

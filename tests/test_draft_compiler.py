@@ -124,6 +124,32 @@ def fixture() -> tuple[dict, dict]:
 
 
 class DraftCompilerTests(unittest.TestCase):
+    def test_project_heading_is_grouped_presentation_and_changes_fingerprints(self) -> None:
+        draft, context = fixture()
+        original = compile_draft(draft, context)
+        draft["resume"]["project_heading"] = "Open Source Projects"
+        result = compile_draft(draft, context)
+        heading = next(e for e in result["manifest"]["entries"] if e["projection_path"] == "project_heading")
+        self.assertEqual(heading["binding_mode"], "presentation")
+        self.assertIn("projects[0].bullets[0]", heading["grouped_item_paths"])
+        self.assertNotEqual(original["resume_fingerprint"], result["resume_fingerprint"])
+        self.assertFalse(any(c["projection_path"] == "project_heading" for c in result["text_changes"]))
+        draft["evidence_links"]["project_heading"] = {"claim_ids": ["proj-work"]}
+        with self.assertRaisesRegex(ValueError, "unknown display paths"):
+            compile_draft(draft, context)
+
+    def test_project_heading_rejects_unsupported_or_empty_sections(self) -> None:
+        for value in ("Summary", "Major Contributor", [], None):
+            draft, context = fixture()
+            draft["resume"]["project_heading"] = value
+            with self.subTest(value=value), self.assertRaisesRegex(ValueError, "project_heading"):
+                compile_draft(draft, context)
+        draft, context = fixture()
+        draft["resume"]["project_heading"] = "Open Source Projects"
+        draft["resume"]["projects"] = []
+        with self.assertRaisesRegex(ValueError, "non-empty projects"):
+            compile_draft(draft, context)
+
     def test_removed_summary_field_and_dangling_binding_are_rejected(self) -> None:
         for value in ("Old profile", "", None):
             draft, context = fixture()

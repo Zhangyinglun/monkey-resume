@@ -25,6 +25,7 @@ _SECTION_HEADERS: dict[str, str] = {
     "EXPERIENCE": "experience",
     "WORK EXPERIENCE": "experience",
     "PROJECTS": "projects",
+    "OPEN SOURCE PROJECTS": "projects",
     "PROJECT": "projects",
     "TECHNICAL SKILLS": "skills",
     "SKILLS": "skills",

@@ -15,6 +15,22 @@ from scripts import generate_final_resume as publication
 
 
 class PublicationTests(unittest.TestCase):
+    def test_no_jd_scope_quote_works_without_invented_job_requirements(self) -> None:
+        self.compiled["target"]["original_jd"] = "Please send a general recruiter resume."
+        prepared = self.prepare()
+        review = self.review(prepared)
+        review["blind_reading"]["requirements"] = [{
+            "kind": "scope_only",
+            "original_quote": self.compiled["target"]["original_jd"],
+            "assessment": "No job-specific requirements were provided.",
+        }]
+        record = json.loads(Path(prepared["record"]).read_text(encoding="utf-8"))
+        self.assertEqual(record["target"]["requirements"], [])
+        publication._validate_review(review, record)
+        review["blind_reading"]["requirements"][0]["original_quote"] = "Invented qualification"
+        with self.assertRaises(publication.ReviewNotReady):
+            publication._validate_review(review, record)
+
     def test_status_flags_without_actual_review_results_are_not_ready(self) -> None:
         prepared = self.prepare()
         for missing in ("blind_reading", "evidence_review", "review_context"):

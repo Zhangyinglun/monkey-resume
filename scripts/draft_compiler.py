@@ -99,7 +99,7 @@ def _validate_target(target: dict) -> None:
 
 def _validate_display(resume: dict) -> None:
     validate_resume_content(resume)
-    unknown = set(resume) - {"name", "contact", *_SECTIONS}
+    unknown = set(resume) - {"name", "contact", "project_heading", *_SECTIONS}
     if unknown:
         raise ValueError(f"unknown resume display fields: {sorted(unknown)}")
     _text(resume["name"], "resume.name")
@@ -340,6 +340,18 @@ def compile_draft(draft: dict, context: dict) -> dict:
                 "grouped_item_paths": [item["projection_path"] for item in grouped],
             }
         )
+
+    if "project_heading" in resume:
+        grouped = [entry for entry in entries if entry["projection_path"].startswith("projects[")]
+        entries.append({
+            "projection_path": "project_heading",
+            "rendered_text": resume["project_heading"],
+            "binding_mode": "presentation",
+            "entity_ids": list(dict.fromkeys(e for item in grouped for e in item["entity_ids"])),
+            "source_claim_ids": list(dict.fromkeys(c for item in grouped for c in item["source_claim_ids"])),
+            "relationship_ids": [],
+            "grouped_item_paths": [item["projection_path"] for item in grouped],
+        })
 
     omitted: set[str] = set()
     omissions = _array(draft.get("omissions"), "draft.omissions")

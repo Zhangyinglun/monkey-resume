@@ -69,6 +69,15 @@ reading and evidence/omission checks in the review file. Publication requires
 populated results and their context binding, and retains them unchanged; it does
 not mechanically certify their semantic completeness.
 
+For recruiter outreach with no actual job requirements, keep the blind-reading
+`requirements` array as a record of scope, not invented qualifications. Include
+one entry with `kind: "scope_only"`, an `original_quote` copied exactly from the
+preserved outreach/user purpose, and `assessment` explicitly stating that no
+job-specific requirements were provided. Keep `target.requirements` empty unless
+the source contains real requirements. This supplies an honest quoted review
+scope under the existing publication gate; do not replace the quote with inferred
+skills, and do not omit the independent evidence or visual checks.
+
 ## 3. Inspect actual rendered artifacts
 
 Follow `docx-output.md` to create an independent DOCX preview and PDF page images.
