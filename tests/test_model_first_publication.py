@@ -128,7 +128,8 @@ class PublicationTests(unittest.TestCase):
             ("compile_draft", lambda d, c: {**copy.deepcopy(self.compiled), **c}),
             ("generate_resume", self.render),
             ("check_pdf_file", lambda p, **kwargs: copy.deepcopy(self.qa)),
-            ("rendering_environment", lambda: {"renderer_version": "synthetic test environment"}),
+            ("rendering_environment", lambda **kwargs: {"renderer_version": "synthetic test environment"}),
+            ("validate_pdf_fonts", lambda *args: {"verified": True, "font_family": "Arial", "actual_fonts": ["synthetic-font-check"]}),
         ):
             mock = patch.object(publication, name, replacement, create=True)
             mock.start()
@@ -168,7 +169,7 @@ class PublicationTests(unittest.TestCase):
             prepared = publication.prepare_candidate(self.workspace, self.draft, auto_fit=True, author_id="writer")
         self.assertTrue(prepared["qa_passed"], prepared["render_error"])
         record = json.loads(Path(prepared["record"]).read_text(encoding="utf-8"))
-        self.assertEqual(record["style"]["name"], "professional-v2")
+        self.assertEqual(record["style"]["name"], "professional-v3")
         self.assertEqual(record["style"]["layout"]["item_spacing_scale"], 0.8)
         self.assertEqual(record["rendering_environment"]["renderer_version"], "synthetic test environment")
         with patch.object(publication, "check_pdf_file", return_value=self.qa) as check:
@@ -267,6 +268,23 @@ class PublicationTests(unittest.TestCase):
         self.assertEqual((output / "resume.docx").read_bytes(), b"accepted")
         self.assertTrue(Path(prepared["pdf"]).exists())
         self.assertFalse((self.workspace / "resume_history").exists())
+
+    def test_font_substitution_at_publication_preserves_accepted_generation(self) -> None:
+        prepared = self.prepare()
+        publication.publish_candidate(self.workspace, prepared["candidate_id"], self.review(prepared))
+        old_files = {
+            path: path.read_bytes()
+            for folder in ("resume_output", "resume_history")
+            for path in (self.workspace / folder).rglob("*") if path.is_file()
+        }
+        replacement = self.prepare()
+        with patch.object(publication, "validate_pdf_fonts", side_effect=RuntimeError("Arial was substituted")):
+            with self.assertRaisesRegex(publication.ReviewNotReady, "Arial was substituted"):
+                publication.publish_candidate(
+                    self.workspace, replacement["candidate_id"], self.review(replacement)
+                )
+        self.assertEqual({path: path.read_bytes() for path in old_files}, old_files)
+        self.assertEqual(len(list((self.workspace / "resume_history").glob("generation-*"))), 1)
 
     def test_publication_move_failure_rolls_back_history_and_accepted(self) -> None:
         prepared = self.prepare()

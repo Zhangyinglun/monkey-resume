@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import subprocess
 import tempfile
@@ -12,7 +13,8 @@ from pathlib import Path
 from scripts.candidate_cache import commit_import, load_candidate_context, prepare_import
 from scripts.draft_compiler import compile_draft
 from scripts.generate_final_resume import ReviewNotReady, prepare_candidate, publish_candidate
-from templates.docx_resume_template import require_carlito
+from templates.document_fonts import resolve_font_files
+from templates.style_profiles import DEFAULT_STYLE, get_style
 
 
 def ingest_notes(root: Path) -> tuple[Path, dict, dict]:
@@ -138,8 +140,9 @@ class ModelFirstIntegrationTests(unittest.TestCase):
 class RealCandidateIntegrationTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
+        cls.render_style = os.environ.get("MONKEY_RESUME_TEST_STYLE", DEFAULT_STYLE)
         try:
-            require_carlito()
+            resolve_font_files(get_style(cls.render_style).font_family)
         except (RuntimeError, OSError, subprocess.SubprocessError) as exc:
             raise unittest.SkipTest(str(exc)) from exc
 
@@ -148,7 +151,7 @@ class RealCandidateIntegrationTests(unittest.TestCase):
             workspace, draft, _ = ingest_notes(Path(directory))
             path = workspace / "draft.json"
             path.write_text(json.dumps(draft), encoding="utf-8")
-            prepared = prepare_candidate(workspace, path, author_id="synthetic-test-writer")
+            prepared = prepare_candidate(workspace, path, author_id="synthetic-test-writer", style=self.render_style)
             self.assertTrue(prepared["qa_passed"], prepared["physical_qa"])
             self.assertFalse((workspace / "resume_output").exists())
             self.assertFalse((workspace / "resume_history").exists())
@@ -206,7 +209,7 @@ class RealCandidateIntegrationTests(unittest.TestCase):
             workspace, draft, report = ingest_notes(Path(directory))
             path = workspace / "draft.json"
             path.write_text(json.dumps(draft), encoding="utf-8")
-            prepared = prepare_candidate(workspace, path)
+            prepared = prepare_candidate(workspace, path, style=self.render_style)
             output = workspace / "resume_output"
             output.mkdir()
             prior = output / "resume.docx"

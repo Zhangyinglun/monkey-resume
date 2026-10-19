@@ -1,6 +1,6 @@
 ---
 name: monkey-resume
-description: Import resumes or candidate information documents into a reusable local evidence cache, or tailor and review a truthful one-page resume against a job description. Use for resume/CV preparation, cache updates, JD-driven rewriting, and DOCX delivery with optional PDF.
+description: Import resumes or candidate information documents into a reusable local evidence cache, or tailor and review a truthful one-page resume against a job description. Use for resume/CV preparation, cache updates, JD-driven rewriting, and DOCX delivery by default; deliver PDF only when explicitly required.
 ---
 
 # MonkeyResume
@@ -11,10 +11,19 @@ and versions, render documents and protect accepted history. Scripts call no
 model APIs. A successful evidence binding is not proof of factual meaning or
 important-experience coverage.
 
+## Delivery format
+
+Deliver only the editable DOCX by default. Deliver PDF only when the user requests
+it or the observed application entrance explicitly requires it. Internal QA and
+history still retain the same-source PDF; final handoff links include only the
+requested deliverable formats.
+
 ## Paths and facts
 
 - `MONKEY_RESUME_DIR` is the directory containing this file. Run scripts by
   absolute path, with one external `USER_WORKSPACE` per candidate.
+- When `$MONKEY_RESUME_DIR/.venv/bin/python` exists, use it for the Python
+  commands below, or activate that environment before running them.
 - Default `USER_WORKSPACE` is `~/Documents/MonkeyResume`. Personal inputs,
   proposals, cache, drafts and outputs stay outside this Skill repository.
 - `cache/candidate-state.json` holds the current Ledger, Profile and sources.
@@ -151,6 +160,10 @@ original evidence/corrections to check assertions and important omissions.
 Use the returned review template's actual bindings; never manufacture PASS.
 Content and real DOCX/PDF preview checks belong to this one review stage.
 
+The default `professional-v3` style uses Arial. Follow the selected-style font
+checks in `references/docx-output.md`; missing fonts or actual substitution block
+acceptance. Preserve older style choices and accepted artifacts.
+
 Inspect every page of the DOCX's independent preview and same-source PDF. Final
 output must be one readable A4 page, without clipping. If overfilled, improve
 selection and focused wording before layout compression. Verify all five required
@@ -168,10 +181,12 @@ python3 "$MONKEY_RESUME_DIR/scripts/generate_final_resume.py" publish \
   --review "$REVIEW_FILE" --format docx
 ```
 
-Use `--format both` for requested PDF delivery. The historical same-source PDF
-persists for DOCX-only delivery too. Report actual content, programmatic format
+Use `--format both` when PDF is requested alongside DOCX, or `--format pdf` for
+PDF-only delivery. Report actual content, programmatic format
 and visual status, unresolved gaps, absolute output paths and
-`$USER_WORKSPACE/resume_history/index.html`.
+`$USER_WORKSPACE/resume_history/index.html`. Report local LibreOffice checks
+separately from cross-software results supplied by the user, including each
+reader/version actually tested.
 
 Continue when there is a concrete fix or new evidence. If the same dispute stalls
 or one-page output conflicts with explicit must-keep content, present a specific

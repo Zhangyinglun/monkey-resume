@@ -20,6 +20,8 @@
 - All five required rules in `resume-language-quality.md` checked against prose
   and evidence; concise presentation preserves actual capability and metric scope.
 - Traceability checks pass without being described as semantic proof.
+- Selected style is recorded; default `professional-v3` uses Arial. Required fonts
+  are available and actual rendered text uses that family without substitution.
 - Actual candidate DOCX/PDF remain unaccepted until unified review completes.
 
 ## Review and publication
@@ -33,6 +35,12 @@
 - Review comes from the actual review context, not writer-generated PASS; ordinary
   suggestions do not mask unresolved blocking findings.
 - Candidate, draft, context and exact artifacts match the review bindings.
+- Publication rechecks font evidence against the frozen style; a failed candidate
+  preserves previous Accepted Resumes.
+- Local LibreOffice checks are reported separately from user-supplied software/
+  version/results; unavailable cross-software checks are not reported as passes.
+- Delivery is DOCX by default; PDF handoff requires an explicit request or entrance
+  requirement. Same-source QA PDF and accepted history remain retained internally.
 - Only then publish; source, original candidate, prior Accepted files and history
   remain intact on handled failures. Handoff paths and true limitations reported.
 

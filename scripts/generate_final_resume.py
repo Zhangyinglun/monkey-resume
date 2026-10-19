@@ -33,6 +33,7 @@ from scripts.check_pdf_quality import check_pdf_file  # noqa: E402
 from scripts.layout_auto_tuner import auto_fit_layout  # noqa: E402
 from scripts.resume_history_manager import validate_job_url  # noqa: E402
 from scripts.resume_shared import add_workspace_argument, load_json_file  # noqa: E402
+from templates.document_fonts import validate_pdf_fonts  # noqa: E402
 from templates.docx_resume_template import generate_resume, rendering_environment  # noqa: E402
 from templates.layout_settings import LayoutSettings
 from templates.style_profiles import DEFAULT_STYLE, STYLES, get_style  # noqa: E402
@@ -150,6 +151,7 @@ def prepare_candidate(
         docx = pdf.with_suffix(".docx")
         qa: dict = {"verdict": "unavailable", "checks": []}
         error = ""
+        font_verification: dict[str, object] = {"verified": False}
         try:
             if auto_fit:
                 layout = auto_fit_layout(
@@ -170,6 +172,8 @@ def prepare_candidate(
             ).resolve()
             if rendered != pdf:
                 raise ValueError("Renderer returned an unexpected artifact path.")
+            if style == "professional-v3":
+                font_verification = validate_pdf_fonts(pdf, profile.font_family)
             qa = check_pdf_file(pdf, minimum_font_pt=profile.minimum_font_pt)
         except Exception as exc:  # Preserve failed candidates for host feedback.
             error = str(exc)
@@ -189,7 +193,8 @@ def prepare_candidate(
             "target": compiled["target"],
             "physical_qa": qa,
             "style": profile.snapshot(layout),
-            "rendering_environment": rendering_environment(),
+            "rendering_environment": rendering_environment(style=style),
+            "font_verification": font_verification,
             "render_error": error,
         }
         _write(directory / "candidate-record.json", record)
@@ -400,6 +405,11 @@ def publish_candidate(
             if _sha(artifact) != record[artifact.suffix[1:] + "_sha256"]:
                 raise ValueError("Actual candidate artifact changed after review.")
         _validate_review(review, record)
+        if record.get("style", {}).get("name") == "professional-v3":
+            try:
+                validate_pdf_fonts(pdf, record["style"]["font_family"])
+            except (OSError, RuntimeError) as exc:
+                raise ReviewNotReady(str(exc)) from exc
         qa = check_pdf_file(pdf, minimum_font_pt=record.get("style", {}).get("minimum_font_pt", 8.5))
         if not _qa_passes(qa):
             raise ReviewNotReady("Actual PDF must pass one-page A4 and readable geometry QA.")

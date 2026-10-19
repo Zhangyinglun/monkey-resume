@@ -22,7 +22,10 @@ Read `CONTEXT.md` before changing domain terms or evidence/review behavior. Lega
 
 ## Development Checks
 
+Use Python 3.11 or newer for development and the project-local `.venv`.
+
 ```bash
+source .venv/bin/activate
 python3 -m pip install -r requirements-dev.txt
 skills-ref validate "$PWD"
 ruff check scripts templates tests

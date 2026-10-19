@@ -5,7 +5,9 @@
 An Agent Skill for importing candidate documents into a reusable local evidence
 cache and writing JD-specific, one-page English resumes. The host model reads
 full sources and writes the prose; local scripts preserve provenance, validate
-bindings and render editable DOCX with a same-source PDF.
+bindings and render editable DOCX. Delivery defaults to DOCX; PDF is delivered
+only when the user requests it or an application entrance explicitly requires it.
+A same-source PDF is retained internally for QA and history.
 
 Traceability is not proof of truth. Publication requires a complete independent
 content review and actual visual inspection, plus measured one-page A4 QA.
@@ -13,9 +15,10 @@ Unsupported requirements remain gaps, not invented experience. Professional
 positioning appears in experience and skills; generated resumes have no Summary
 section.
 
-The default `professional-v2` style uses black text, left-aligned 11 pt body,
-short headings and bounded auto-fit. Select `prepare --style legacy-v1` for the
-previous appearance. To compare both with wholly fictional content, run
+The default `professional-v3` style uses Arial, black text, left-aligned 11 pt
+body, short headings, standard right-aligned date tabs and bounded auto-fit.
+Select `prepare --style professional-v2` or `prepare --style legacy-v1` for the
+retained Carlito styles. To compare versioned styles with wholly fictional content, run
 `python3 scripts/preview_resume_styles.py --output-dir /absolute/external/new-directory`.
 Design previews are not Accepted Resumes.
 
@@ -24,14 +27,26 @@ Design previews are not Accepted Resumes.
 ```bash
 git clone https://github.com/Zhangyinglun/monkey-resume.git ~/Projects/monkey-resume
 cd ~/Projects/monkey-resume
+python3 -m venv .venv
+source .venv/bin/activate
 python3 -m pip install -r requirements.txt
 mkdir -p ~/.agents/skills
 ln -s ~/Projects/monkey-resume ~/.agents/skills/monkey-resume
 ```
 
-Rendering also needs LibreOffice, Poppler and Carlito fonts; see
-[output and QA](references/docx-output.md) for environment limitations.
+Rendering also needs LibreOffice, Poppler and the selected style's fonts: Arial
+for the default, Carlito for older styles. Install Arial separately under its
+license; font files are not bundled. Missing fonts or actual rendered substitution
+block a candidate from passing, even if a replacement looks similar. See
+[output and QA](references/docx-output.md) for setup and environment limitations.
+Local LibreOffice checks are reported separately from user-run checks in Word,
+Google Docs or other readers; identical display across software is not guaranteed.
 Restart OpenCode after installing/updating the Skill or agent instructions.
+
+For development, use Python 3.11 or newer, activate `.venv` and install
+`requirements-dev.txt`.
+This includes PyYAML, Ruff and the pinned Skill validator used in CI. Run checks
+with that environment active; dependencies remain in the project environment.
 
 ## Use with your agent
 

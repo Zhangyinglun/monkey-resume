@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import os
 import shutil
 import subprocess
 import sys
@@ -13,14 +14,14 @@ from docx import Document
 
 from scripts.extract_resume_text import extract_docx_text
 from scripts.layout_auto_tuner import auto_fit_layout
+from templates.document_fonts import resolve_font_files
 from templates.docx_resume_template import (
     export_pdf,
     generate_docx,
     generate_resume,
-    require_carlito,
 )
 from templates.layout_settings import LayoutSettings
-from templates.style_profiles import get_style
+from templates.style_profiles import DEFAULT_STYLE, get_style
 from tests.sample_data import sample_resume
 
 
@@ -43,7 +44,7 @@ class DocxTemplateTests(unittest.TestCase):
     def test_approved_readable_defaults(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             doc = Document(generate_docx("default.docx", sample_resume(), directory))
-            self.assertEqual(doc.styles["Normal"].font.name, "Carlito")
+            self.assertEqual(doc.styles["Normal"].font.name, "Arial")
             self.assertEqual(doc.styles["Normal"].font.size.pt, 11.0)
             self.assertEqual(doc.paragraphs[0].runs[0].font.size.pt, 19.0)
             self.assertAlmostEqual(doc.sections[0].top_margin.mm, 15.24)
@@ -111,15 +112,44 @@ class DocxTemplateTests(unittest.TestCase):
 
     def test_converter_timeout_does_not_publish_pdf(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
-            path = Path(generate_docx("resume.docx", sample_resume(), directory))
+            path = Path(generate_docx("resume.docx", sample_resume(), directory, style="professional-v2"))
             with (
-                mock.patch("templates.docx_resume_template.require_carlito"),
-                mock.patch("shutil.which", return_value="soffice"),
+                mock.patch("shutil.which", side_effect=lambda name: "soffice" if name == "soffice" else None),
                 mock.patch("subprocess.run", side_effect=subprocess.TimeoutExpired("soffice", 120)),
             ):
                 with self.assertRaises(subprocess.TimeoutExpired):
+                    export_pdf(path, style="professional-v2")
+            self.assertFalse(path.with_suffix(".pdf").exists())
+
+    def test_missing_selected_font_blocks_conversion(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(generate_docx("resume.docx", sample_resume(), directory))
+            with (
+                mock.patch("shutil.which", side_effect=lambda name: "soffice" if name == "soffice" else None),
+                mock.patch("templates.document_fonts.Path.is_dir", return_value=False),
+            ):
+                with self.assertRaisesRegex(RuntimeError, "Arial Regular and Bold"):
                     export_pdf(path)
             self.assertFalse(path.with_suffix(".pdf").exists())
+
+    def test_converter_substitution_is_rejected(self) -> None:
+        from reportlab.pdfgen.canvas import Canvas
+
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(generate_docx("resume.docx", sample_resume(), directory, style="professional-v2"))
+            original_run = subprocess.run
+
+            def converter(command: list[str], **kwargs: object) -> subprocess.CompletedProcess:
+                if "--convert-to" not in command:
+                    return original_run(command, **kwargs)
+                canvas = Canvas(str(path.with_suffix(".pdf")))
+                canvas.drawString(50, 750, "This converter substituted Helvetica.")
+                canvas.save()
+                return subprocess.CompletedProcess(command, 0, "", "")
+
+            with mock.patch("subprocess.run", side_effect=converter):
+                with self.assertRaisesRegex(RuntimeError, "Refusing font substitution"):
+                    export_pdf(path, style="professional-v2")
 
 
 @unittest.skipUnless(
@@ -128,8 +158,9 @@ class DocxTemplateTests(unittest.TestCase):
 class DocxRenderTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
+        cls.render_style = os.environ.get("MONKEY_RESUME_TEST_STYLE", DEFAULT_STYLE)
         try:
-            require_carlito()
+            resolve_font_files(get_style(cls.render_style).font_family)
         except (RuntimeError, OSError, subprocess.SubprocessError) as exc:
             raise unittest.SkipTest(str(exc)) from exc
 
@@ -139,10 +170,10 @@ class DocxRenderTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory(prefix="resume space ") as directory:
             root = Path(directory)
-            pdf = Path(generate_resume("候选 Resume.pdf", sample_resume(), root))
+            pdf = Path(generate_resume("候选 Resume.pdf", sample_resume(), root, style=self.render_style))
             copied = root / "independent.docx"
             shutil.copy2(pdf.with_suffix(".docx"), copied)
-            script = Path(__file__).resolve().parents[1] / "vendor/openai_doc/render_docx.py"
+            script = Path(__file__).resolve().parents[1] / "scripts/render_docx_preview.py"
             subprocess.run(
                 [
                     sys.executable,
@@ -152,6 +183,8 @@ class DocxRenderTests(unittest.TestCase):
                     str(root / "preview"),
                     "--dpi",
                     "96",
+                    "--style",
+                    self.render_style,
                 ],
                 check=True,
                 capture_output=True,
@@ -165,6 +198,21 @@ class DocxRenderTests(unittest.TestCase):
                 self.assertEqual(expected[0].size, actual.size)
                 self.assertEqual(expected[0].tobytes(), actual.tobytes())
 
+    def test_default_render_uses_actual_arial_fonts(self) -> None:
+        import pdfplumber
+
+        try:
+            resolve_font_files("Arial")
+        except RuntimeError as exc:
+            self.skipTest(f"Actual Arial rendering not tested: {exc}")
+        with tempfile.TemporaryDirectory() as directory:
+            pdf = Path(generate_resume("fonts.pdf", sample_resume(), directory))
+            with pdfplumber.open(pdf) as rendered:
+                fonts = {char["fontname"].split("+")[-1] for page in rendered.pages for char in page.chars}
+        self.assertIn("ArialMT", fonts)
+        self.assertIn("Arial-BoldMT", fonts)
+        self.assertTrue(all(name.startswith("Arial") for name in fonts), fonts)
+
     def test_real_overflow_detected_without_editing_content(self) -> None:
         from scripts.check_pdf_quality import check_pdf_file
 
@@ -172,7 +220,7 @@ class DocxRenderTests(unittest.TestCase):
         resume["experience"][0]["bullets"] *= 15
         before = copy.deepcopy(resume)
         with tempfile.TemporaryDirectory() as directory:
-            pdf = Path(generate_resume("overflow.pdf", resume, directory))
+            pdf = Path(generate_resume("overflow.pdf", resume, directory, style=self.render_style))
             report = check_pdf_file(pdf)
         count = next(c for c in report["checks"] if c["name"] == "page_count")
         self.assertGreater(count["detail"]["count"], 1)

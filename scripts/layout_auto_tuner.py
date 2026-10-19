@@ -231,7 +231,7 @@ def auto_fit_layout(
         if direction == "pass":
             return AutoFitResult(best_layout=first_trial.layout, best_report=first_trial.report, trials_run=1)
 
-        if style == DEFAULT_STYLE:
+        if style != "legacy-v1":
             trials = [first_trial]
             for candidate in bounded_layouts(profile, first_layout)[:max_trials - 1]:
                 trial = _run_trial(content, output_file, candidate, base_temp / f"trial-{len(trials) + 1}", style=style)

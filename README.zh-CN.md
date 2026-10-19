@@ -4,14 +4,16 @@
 
 将候选人资料导入可复用的本地证据缓存，并按 JD 定制单页英文简历的 Agent
 Skill。宿主模型阅读完整原文、理解事实并写作；本地脚本保存来源、检查绑定、
-生成可编辑 DOCX 和同源 PDF。
+生成可编辑 DOCX。默认只交付 DOCX；用户或投递入口明确要求时才交付 PDF。
+内部仍保留同源 PDF，用于排版检查和历史记录。
 
 可追溯不等于事实正确。发布需要完整独立内容审查、真实视觉检查和单页 A4
 物理 QA。没有证据的岗位要求保留为缺口，不补成经历。岗位定位直接体现在
 工作经历和技能栏中，生成简历不包含 Summary 栏。
 
-默认 `professional-v2` 样式采用黑白、左对齐 11 pt 正文、简短章节标题和有可读性下限的自动适配。
-通过 `prepare --style legacy-v1` 可选择原样式。运行
+默认 `professional-v3` 样式采用 Arial、黑白、左对齐 11 pt 正文、简短章节标题、
+标准右对齐日期制表位和有可读性下限的自动适配。通过
+`prepare --style professional-v2` 或 `prepare --style legacy-v1` 可选择保留的 Carlito 样式。运行
 `python3 scripts/preview_resume_styles.py --output-dir /absolute/external/new-directory`
 可用完全虚构内容生成新旧对比；样式预览不属于 Accepted Resume。
 
@@ -20,13 +22,18 @@ Skill。宿主模型阅读完整原文、理解事实并写作；本地脚本保
 ```bash
 git clone https://github.com/Zhangyinglun/monkey-resume.git ~/Projects/monkey-resume
 cd ~/Projects/monkey-resume
+python3 -m venv .venv
+source .venv/bin/activate
 python3 -m pip install -r requirements.txt
 mkdir -p ~/.agents/skills
 ln -s ~/Projects/monkey-resume ~/.agents/skills/monkey-resume
 ```
 
-渲染还需 LibreOffice、Poppler 和 Carlito 字体，环境限制见
-[输出与 QA](references/docx-output.md)。安装或更新 Skill、agent 指令后，退出并重启 OpenCode。
+渲染还需 LibreOffice、Poppler 和所选样式的字体：默认样式使用 Arial，旧样式使用 Carlito。
+Arial 需按其许可证单独安装，本包不附带字体文件。缺少字体或实际渲染发生字体替换时，
+候选版本无法通过检查，即使替代字体外观相似。安装与环境限制见
+[输出与 QA](references/docx-output.md)。本机 LibreOffice 检查与用户执行的 Word、Google Docs
+等跨软件验证分别记录，不保证所有软件展示完全一致。安装或更新 Skill、agent 指令后，退出并重启 OpenCode。
 
 ## 在 Agent 中使用
 
@@ -39,7 +46,7 @@ ln -s ~/Projects/monkey-resume ~/.agents/skills/monkey-resume
 **定制并交付：**提供原始 JD 和候选人资料：
 
 ```text
-使用 $monkey-resume 根据这个岗位定制简历。独立审查内容并检查实际单页 DOCX/PDF 后再发布，默认交付 DOCX，需要时附 PDF。
+使用 $monkey-resume 根据这个岗位定制简历。独立审查内容并检查实际单页 DOCX/PDF 后再发布，默认只交付 DOCX，明确要求时才交付 PDF。
 ```
 
 1. 保存原始字节和有序文本块；模型通读来源，用准确原文摘录提出事实，再提交经校验的导入。
@@ -75,7 +82,10 @@ USER_WORKSPACE/
 
 ## 开发检查
 
+开发环境使用 Python 3.11 或更新版本；依赖安装在项目的 `.venv` 中。
+
 ```bash
+source .venv/bin/activate
 python3 -m pip install -r requirements-dev.txt
 skills-ref validate "$PWD"
 ruff check scripts templates tests

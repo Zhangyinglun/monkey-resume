@@ -4,7 +4,6 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import subprocess
 import sys
 from pathlib import Path
 
@@ -17,6 +16,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from scripts.check_pdf_quality import check_pdf_file  # noqa: E402
 from scripts.layout_auto_tuner import auto_fit_layout  # noqa: E402
+from scripts.render_docx_preview import render_preview  # noqa: E402
 from templates.docx_resume_template import generate_resume, rendering_environment  # noqa: E402
 from templates.style_profiles import STYLES, get_style  # noqa: E402
 
@@ -37,7 +37,7 @@ def main() -> int:
     report = {
         "purpose": "Wholly fictional design preview; not an Accepted Resume or candidate evidence.",
         "sample_sha256": hashlib.sha256(fixture.read_bytes()).hexdigest(),
-        "rendering_environment": rendering_environment(), "styles": {},
+        "styles": {},
     }
     passed = True
     for name in STYLES:
@@ -48,10 +48,7 @@ def main() -> int:
         pdf = Path(generate_resume("resume.pdf", content, str(output / name), layout, style=name))
         qa = check_pdf_file(pdf, minimum_font_pt=profile.minimum_font_pt)
         preview = pdf.parent / "docx-preview"
-        subprocess.run([
-            sys.executable, str(PROJECT_ROOT / "vendor/openai_doc/render_docx.py"),
-            str(pdf.with_suffix(".docx")), "--output_dir", str(preview), "--dpi", "144",
-        ], check=True, capture_output=True, timeout=120)
+        render_preview(pdf.with_suffix(".docx"), preview, style=name)
         pages = convert_from_path(pdf, dpi=144)
         independent = sorted(preview.glob("page-*.png"))
         equal = len(pages) == len(independent)
@@ -63,6 +60,7 @@ def main() -> int:
         passed = passed and qa["verdict"] == "PASS" and equal
         report["styles"][name] = {
             "style": profile.snapshot(layout), "physical_qa": qa,
+            "rendering_environment": rendering_environment(style=name),
             "docx_sha256": hashlib.sha256(pdf.with_suffix(".docx").read_bytes()).hexdigest(),
             "pdf_sha256": hashlib.sha256(pdf.read_bytes()).hexdigest(),
             "independent_preview_pixel_match": equal, "page_count": len(pages),

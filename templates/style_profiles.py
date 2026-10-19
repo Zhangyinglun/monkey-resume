@@ -8,7 +8,7 @@ from typing import Any
 from templates.design_tokens import DEFAULT_TOKENS, DesignTokens
 from templates.layout_settings import DOCX_DEFAULT_SETTINGS, LayoutSettings
 
-DEFAULT_STYLE = "professional-v2"
+DEFAULT_STYLE = "professional-v3"
 
 
 @dataclass(frozen=True)
@@ -32,7 +32,7 @@ class StyleProfile:
 
     def resolve_layout(self, layout: LayoutSettings | None = None) -> LayoutSettings:
         resolved = layout or self.layout
-        if self.name == DEFAULT_STYLE and resolved.compact_mode:
+        if self.name != "legacy-v1" and resolved.compact_mode:
             resolved = replace(
                 resolved,
                 font_size_scale=10.5 / 11.0 if resolved.font_size_scale in (None, 1.0) else resolved.font_size_scale,
@@ -52,7 +52,7 @@ class StyleProfile:
                 raise ValueError(f"Invalid layout value: {name}={value}")
             if name.endswith("scale") and not 0.7 <= value <= 1.3:
                 raise ValueError(f"Layout scale out of range: {name}={value}")
-        if self.name != DEFAULT_STYLE:
+        if self.name == "legacy-v1":
             return
         sizes = self.font_sizes(layout, tokens)
         if min(sizes.values()) < self.minimum_font_pt:
@@ -106,9 +106,14 @@ STYLES = {
         "legacy-v1", 1, DEFAULT_TOKENS, DOCX_DEFAULT_SETTINGS,
         justify_body=True, short_headings=False, minimum_font_pt=8.5, minimum_margin_mm=0.0,
     ),
-    DEFAULT_STYLE: StyleProfile(
-        DEFAULT_STYLE, 2, _PROFESSIONAL_TOKENS,
+    "professional-v2": StyleProfile(
+        "professional-v2", 2, _PROFESSIONAL_TOKENS,
         LayoutSettings(margin_top_mm=15.24, margin_bottom_mm=15.24, margin_side_inch=0.65),
+    ),
+    DEFAULT_STYLE: StyleProfile(
+        DEFAULT_STYLE, 3, _PROFESSIONAL_TOKENS,
+        LayoutSettings(margin_top_mm=15.24, margin_bottom_mm=15.24, margin_side_inch=0.65),
+        font_family="Arial",
     ),
 }
 

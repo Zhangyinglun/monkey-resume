@@ -6,7 +6,6 @@ entirely to WordprocessingML and LibreOffice. See references/docx-output.md.
 from __future__ import annotations
 
 import hashlib
-import os
 import platform
 import re
 import shutil
@@ -20,15 +19,38 @@ from docx import Document
 from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_TAB_ALIGNMENT
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
-from docx.shared import Inches, Mm, Pt, RGBColor
+from docx.shared import Emu, Inches, Mm, Pt, RGBColor
 from docx.text.run import Run
+from reportlab.pdfbase.pdfmetrics import stringWidth
 
 from scripts.resume_shared import normalize_skill_items, validate_resume_content
 from templates.design_tokens import DesignTokens
+from templates.document_fonts import conversion_environment, resolve_font_files, validate_pdf_fonts
 from templates.layout_settings import LayoutSettings
 from templates.style_profiles import DEFAULT_STYLE, get_style
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
+
+def _explicit_fonts(doc: Any, family: str) -> None:
+    """Bind portable output text to its declared family rather than reader themes."""
+    for style in doc.styles:
+        if style.type in (1, 2, 3):
+            style.font.name = family
+    for root in (doc.styles.element, doc.element):
+        for run in root.iter(qn("w:r")):
+            props = run.find(qn("w:rPr"))
+            if props is None:
+                props = OxmlElement("w:rPr")
+                run.insert(0, props)
+            if props.find(qn("w:rFonts")) is None:
+                props.insert(0, OxmlElement("w:rFonts"))
+        for fonts in root.iter(qn("w:rFonts")):
+            for attr in list(fonts.attrib):
+                if attr.lower().endswith("theme"):
+                    del fonts.attrib[attr]
+            for slot in ("ascii", "hAnsi", "eastAsia", "cs"):
+                fonts.set(qn("w:" + slot), family)
 
 
 def _add_text(paragraph: Any, text: str, *, bold: bool = False) -> None:
@@ -131,9 +153,20 @@ def generate_docx(output_file: str, content_dict: dict[str, Any], base_dir: str,
         if follows_bullet:
             p.paragraph_format.space_before = Pt(design_tokens.company_space_before * section_spacing_scale)
         width = section.page_width - section.left_margin - section.right_margin
+        if profile.name == "professional-v3" and dates:
+            # Helvetica's Arial-compatible widths plus clearance give long rows
+            # a separate date line; actual rendering is still checked in QA.
+            text_width = stringWidth(left, "Helvetica-Bold", design_tokens.company_font_size * font_scale)
+            date_width = stringWidth(dates, "Helvetica", design_tokens.dates_font_size * font_scale)
+            if text_width + date_width + 24 > Emu(width).pt:
+                p.paragraph_format.space_after = Pt(0)
+                date = paragraph(dates, design_tokens.dates_font_size,
+                                 after=design_tokens.company_space_after, keep=True)
+                date.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+                return
         p.paragraph_format.tab_stops.add_tab_stop(width, WD_TAB_ALIGNMENT.RIGHT)
         date_run = p.add_run()
-        if profile.name == DEFAULT_STYLE:
+        if profile.name == "professional-v2":
             # Anchor to the right margin rather than a reader's numeric tab stop.
             tab = OxmlElement('w:ptab')
             for key, value in {'alignment': 'right', 'relativeTo': 'margin', 'leader': 'none'}.items():
@@ -186,45 +219,36 @@ def generate_docx(output_file: str, content_dict: dict[str, Any], base_dir: str,
         row(edu.get('school', ''), edu.get('dates', ''))
         if edu.get('degree'):
             paragraph(edu['degree'], design_tokens.education_font_size, after=design_tokens.education_space_after)
+    if profile.name == "professional-v3":
+        _explicit_fonts(doc, profile.font_family)
     doc.save(target)
     return str(target)
 
 
 def require_carlito() -> None:
-    """Refuse silent font substitution in the supported publication environment."""
-    matcher = shutil.which("fc-match")
-    if matcher:
-        result = subprocess.run([matcher, "--format=%{family}", "Carlito"],
-                                capture_output=True, text=True, timeout=15, check=False)
-        if result.returncode == 0 and "Carlito" in result.stdout.split(","):
-            return
-    else:
-        directories = [Path("/Library/Fonts"), Path.home() / "Library/Fonts"]
-        if os.name == "nt":
-            directories += [Path(os.environ.get("WINDIR", "C:/Windows")) / "Fonts",
-                            Path(os.environ.get("LOCALAPPDATA", "")) / "Microsoft/Windows/Fonts"]
-        if any(list(directory.glob("[Cc]arlito*.ttf")) for directory in directories if directory.is_dir()):
-            return
-    raise RuntimeError("Carlito font is required; install fonts-crosextra-carlito (Linux) or Carlito from googlefonts/carlito. Refusing silent font substitution.")
+    """Retained entry point for the older Carlito profiles."""
+    resolve_font_files("Carlito")
 
 
-def export_pdf(docx_path: Path) -> Path:
+def export_pdf(docx_path: Path, *, style: str = DEFAULT_STYLE) -> Path:
     """Use the installed mature office renderer; never silently fall back to another layout."""
     soffice = shutil.which('soffice') or shutil.which('libreoffice')
     if not soffice:
-        raise RuntimeError('LibreOffice is required for DOCX layout QA and PDF export; install LibreOffice and Carlito fonts.')
-    require_carlito()
+        raise RuntimeError('LibreOffice is required for DOCX layout QA and PDF export.')
+    family = get_style(style).font_family
     target = docx_path.with_suffix('.pdf')
     if target.exists():
         raise FileExistsError(f'Refusing stale PDF export: {target}')
     with tempfile.TemporaryDirectory(prefix='resume-office-profile-') as profile:
+        env = conversion_environment(family, Path(profile) / "fonts")
         result = subprocess.run(
             [soffice, '-env:UserInstallation=' + Path(profile).as_uri(), '--headless',
              '--convert-to', 'pdf:writer_pdf_Export', '--outdir', str(docx_path.parent), str(docx_path)],
-            capture_output=True, text=True, timeout=120, check=False,
+            capture_output=True, text=True, timeout=120, check=False, env=env,
         )
     if result.returncode or not target.is_file() or not target.read_bytes().startswith(b'%PDF'):
         raise RuntimeError('LibreOffice PDF export failed: ' + result.stdout + result.stderr)
+    validate_pdf_fonts(target, family)
     return target
 
 
@@ -234,10 +258,10 @@ def generate_resume(output_file: str, content_dict: dict[str, Any], base_dir: st
     if Path(output_file).suffix.lower() != '.pdf':
         raise ValueError('QA output_file must use .pdf.')
     source = generate_docx(str(Path(output_file).with_suffix('.docx')), content_dict, base_dir, layout, style=style)
-    return str(export_pdf(Path(source)))
+    return str(export_pdf(Path(source), style=style))
 
 
-def rendering_environment() -> dict[str, Any]:
+def rendering_environment(*, style: str = DEFAULT_STYLE) -> dict[str, Any]:
     """Record the renderer and installed font files, without resume content."""
     soffice = shutil.which("soffice") or shutil.which("libreoffice")
     renderer_version = None
@@ -248,27 +272,14 @@ def rendering_environment() -> dict[str, Any]:
                 renderer_version = result.stdout.strip() or None
         except (OSError, subprocess.SubprocessError):
             pass
-    font_files: set[Path] = set()
-    matcher = shutil.which("fc-match")
-    if matcher:
-        for variant in ("Regular", "Bold", "Italic", "Bold Italic"):
-            try:
-                result = subprocess.run([matcher, "--format=%{file}", f"Carlito:style={variant}"], capture_output=True, text=True, timeout=15, check=False)
-                path = Path(result.stdout.strip())
-                if result.returncode == 0 and path.is_file():
-                    font_files.add(path)
-            except (OSError, subprocess.SubprocessError):
-                continue
-    else:
-        directories = [Path("/Library/Fonts"), Path.home() / "Library/Fonts"]
-        if os.name == "nt":
-            directories += [Path(os.environ.get("WINDIR", "C:/Windows")) / "Fonts",
-                            Path(os.environ.get("LOCALAPPDATA", "")) / "Microsoft/Windows/Fonts"]
-        for directory in directories:
-            if directory.is_dir():
-                font_files.update(directory.glob("[Cc]arlito*.ttf"))
+    family = get_style(style).font_family
+    try:
+        font_files = resolve_font_files(family)
+    except (OSError, RuntimeError, subprocess.SubprocessError):
+        font_files = ()
     return {
         "platform": platform.platform(), "python_docx": version("python-docx"),
         "renderer": "LibreOffice Writer", "renderer_version": renderer_version,
+        "font_family": family,
         "font_files": [{"name": path.name, "sha256": hashlib.sha256(path.read_bytes()).hexdigest()} for path in sorted(font_files)],
     }

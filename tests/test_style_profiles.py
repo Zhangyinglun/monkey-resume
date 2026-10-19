@@ -27,7 +27,7 @@ class StyleProfileTests(unittest.TestCase):
         resume = sample_resume()
         resume["projects"] = [{"name": "Example Agent", "bullets": ["Improved model compatibility."]}]
         resume["project_heading"] = "Open Source Projects"
-        for style in ("professional-v2", "legacy-v1"):
+        for style in ("professional-v3", "professional-v2", "legacy-v1"):
             with self.subTest(style=style), tempfile.TemporaryDirectory() as directory:
                 doc = Document(generate_docx("open-source.docx", resume, directory, style=style))
                 texts = [p.text for p in doc.paragraphs]
@@ -62,7 +62,7 @@ class StyleProfileTests(unittest.TestCase):
 
     def test_dates_anchor_to_right_margin_and_keep_reading_boundaries(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
-            path = Path(generate_docx("dates.docx", sample_resume(), directory))
+            path = Path(generate_docx("dates.docx", sample_resume(), directory, style="professional-v2"))
             doc = Document(path)
             row = next(p for p in doc.paragraphs if p.text.startswith("Example Corp"))
             tabs = list(row._p.iter(qn("w:ptab")))
@@ -71,6 +71,22 @@ class StyleProfileTests(unittest.TestCase):
             self.assertEqual(tabs[0].get(qn("w:relativeTo")), "margin")
             self.assertIn("Example Corp\t 2020–Present", extract_docx_text(path))
             self.assertTrue(any("Example Corp\t 2020–Present" in block["text"] for block in extract_resume_blocks(path)))
+
+    def test_portable_style_preserves_links_and_standard_date_tabs(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(generate_docx("portable.docx", sample_resume(), directory))
+            doc = Document(path)
+            text = extract_docx_text(path)
+        self.assertEqual(get_style().name, "professional-v3")
+        self.assertFalse(list(doc.element.iter(qn("w:ptab"))))
+        self.assertIn("Example Corp\t2020–Present", text)
+        links = list(doc.element.iter(qn("w:hyperlink")))
+        self.assertTrue(links)
+        for run in doc.element.iter(qn("w:r")):
+            fonts = run.find("./" + qn("w:rPr") + "/" + qn("w:rFonts"))
+            self.assertIsNotNone(fonts)
+            self.assertEqual(fonts.get(qn("w:ascii")), "Arial")
+            self.assertFalse(any(attr.lower().endswith("theme") for attr in fonts.attrib))
 
     def test_unreadable_override_fails_before_writing(self) -> None:
         profile = get_style()
@@ -84,6 +100,25 @@ class StyleProfileTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     generate_docx("bad.docx", sample_resume(), directory, layout)
                 self.assertEqual(list(Path(directory).iterdir()), [])
+
+    def test_long_heading_moves_complete_date_to_its_own_right_aligned_line(self) -> None:
+        resume = sample_resume()
+        company = "Example International Infrastructure and Distributed Systems Engineering Corporation"
+        dates = "September 2020 - September 2026"
+        resume["experience"][0].update(company=company, dates=dates)
+        with tempfile.TemporaryDirectory() as directory:
+            doc = Document(generate_docx("long.docx", resume, directory))
+        company_row = next(i for i, p in enumerate(doc.paragraphs) if p.text == company)
+        date = doc.paragraphs[company_row + 1]
+        self.assertEqual(date.text, dates)
+        self.assertEqual(date.alignment, WD_ALIGN_PARAGRAPH.RIGHT)
+        self.assertTrue(doc.paragraphs[company_row].paragraph_format.keep_with_next)
+
+    def test_previous_professional_style_retains_readability_bounds(self) -> None:
+        profile = get_style("professional-v2")
+        with tempfile.TemporaryDirectory() as directory, self.assertRaises(ValueError):
+            generate_docx("bad.docx", sample_resume(), directory,
+                          replace(profile.layout, font_size_scale=0.8), style="professional-v2")
 
     def test_compact_and_all_trials_respect_font_floor_and_caller_margins(self) -> None:
         profile = get_style()
