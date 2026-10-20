@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class ExternalEntrypointTests(unittest.TestCase):
     def invoke(self, script: str, directory: Path, *arguments: str) -> subprocess.CompletedProcess:
-        environment = {**os.environ, "HOME": str(directory)}
+        environment = {**os.environ, "HOME": str(directory), "USERPROFILE": str(directory)}
         return subprocess.run(
             [sys.executable, str(ROOT / "scripts" / script), *arguments],
             cwd=directory,

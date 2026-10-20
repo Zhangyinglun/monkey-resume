@@ -21,6 +21,8 @@ Skill。宿主模型阅读完整原文、理解事实并写作；本地脚本保
 
 ## 安装
 
+Linux / macOS（Bash）：
+
 ```bash
 git clone https://github.com/Zhangyinglun/monkey-resume.git ~/Projects/monkey-resume
 cd ~/Projects/monkey-resume
@@ -30,6 +32,9 @@ python3 -m pip install -r requirements.txt
 mkdir -p ~/.agents/skills
 ln -s ~/Projects/monkey-resume ~/.agents/skills/monkey-resume
 ```
+
+Windows 原生安装与验证见 [PowerShell 指令](docs/guide/installation.md#windows-powershell-no-wsl-required)，
+无需 WSL。使用 `.venv\Scripts\python.exe`，不要使用 LibreOffice 自带的 Python。
 
 渲染还需 LibreOffice、Poppler 和 Arial。
 Arial 需按其许可证单独安装，本包不附带字体文件。缺少字体或实际渲染发生字体替换时，

@@ -39,6 +39,11 @@ and any converter Fontconfig settings are local to the conversion process; no
 global font configuration is required. No network service receives resume content;
 conversion is local to the executor.
 
+For native Windows setup, read `docs/guide/installation.md`. Standard LibreOffice
+installations are discovered without changing PATH; `soffice.com` keeps conversion
+waitable without launching the GUI bootstrapper. Poppler's `pdftoppm.exe` and
+`pdfinfo.exe` must be on PATH. Use the project virtual environment's Python.
+
 ## CLI
 
 ```bash
@@ -154,7 +159,8 @@ PDF page and set `visual.pdf_preview_inspected: true` only after doing so.
 
 ## PDF reference rendering
 
-The Apache-2.0 public OpenAI doc visual QA script is vendored unchanged at
+The Apache-2.0 public OpenAI doc visual QA script is vendored with local
+Windows/process-lifetime fixes at
 `vendor/openai_doc/render_docx.py`; provenance, source links, fixed commit and
 hashes are in `vendor/openai_doc/PROVENANCE.md`. No current private host skill is copied into this repository. The public skill recommends python-docx authoring and the
 DOCX → LibreOffice PDF → PNG loop retained for internal PDF reference checks.
@@ -171,7 +177,9 @@ These images can check the fixed PDF reference and repeatability in the same
 engine. They cannot set `docx_preview_inspected` to true. The vendored OpenAI
 renderer may attempt an ODT fallback on failure; that fallback is not strict
 DOCX/PDF equivalence evidence. Publication uses bounded direct LibreOffice
-conversion with errors instead.
+conversion with errors instead. Both paths encode profile paths as absolute file
+URIs and stop the converter process tree on timeout; previews also bound Poppler
+calls. A conversion timeout leaves review pending, not accepted.
 
 Check every bullet ending using the actual rendered text width defined in
 `resume-language-quality.md`. Existing physical QA's sparse-ending diagnostic is

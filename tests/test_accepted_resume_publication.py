@@ -38,7 +38,7 @@ class AcceptedResumePublicationTests(unittest.TestCase):
 
     def snapshot(self) -> dict[str, bytes]:
         return {
-            str(path.relative_to(self.workspace)): path.read_bytes()
+            path.relative_to(self.workspace).as_posix(): path.read_bytes()
             for name in ("resume_output", "resume_history")
             for path in (self.workspace / name).rglob("*")
             if path.is_file()
@@ -170,6 +170,67 @@ class AcceptedResumePublicationTests(unittest.TestCase):
                 self.commit()
         self.assertEqual(self.snapshot(), before)
         self.assert_clean()
+
+    def test_windows_unsafe_output_names_fail_before_publication(self) -> None:
+        before = self.seed_previous()
+        for name in (
+            "CON.docx", "nul.pdf", "PRN.extra.docx", "COM1.docx", "LPT9.pdf",
+            "resume:notes.docx", 'bad"name.docx', "draft?.pdf", "draft*.docx",
+            "bad<name>.pdf", "bad|name.docx",
+        ):
+            with self.subTest(name=name), self.assertRaisesRegex(ValueError, "safe"):
+                commit_accepted_resume(
+                    self.workspace, self.pdf, self.record, self.review,
+                    output_name=name, output_format="both",
+                )
+            self.assertEqual(self.snapshot(), before)
+            self.assert_clean()
+
+    def test_case_alias_publication_failure_preserves_previous_accepted_files(self) -> None:
+        commit_accepted_resume(
+            self.workspace, self.pdf, self.record, self.review,
+            output_name="Target.docx", output_format="both",
+        )
+        if not (self.workspace / "resume_output/target.docx").exists():
+            self.skipTest("Requires a case-insensitive volume")
+        for extension in (".pdf", ".docx"):
+            (self.workspace / "resume_output" / ("Target" + extension)).write_bytes(
+                b"previous accepted " + extension.encode("ascii")
+            )
+        before = self.snapshot()
+        original = Path.replace
+        failed = False
+
+        def fail_new_index(source: Path, destination: Path) -> Path:
+            nonlocal failed
+            if destination == self.workspace / "resume_history/index.html" and not failed:
+                failed = True
+                raise OSError("index install failed")
+            return original(source, destination)
+
+        with patch.object(Path, "replace", fail_new_index):
+            with self.assertRaisesRegex(OSError, "index install failed"):
+                self.commit()
+        self.assertEqual(self.snapshot(), before)
+        self.assert_clean()
+        self.commit()
+        for extension in (".pdf", ".docx"):
+            backup = self.workspace / "resume_output/backup/Uncategorized" / (
+                "Target_old_1" + extension
+            )
+            self.assertEqual(backup.read_bytes(), before["resume_output/Target" + extension])
+
+    def test_case_distinct_outputs_remain_independent_on_sensitive_volumes(self) -> None:
+        output = self.workspace / "resume_output"
+        output.mkdir()
+        previous = output / "Target.docx"
+        previous.write_bytes(b"another case-sensitive target")
+        if (output / "target.docx").exists():
+            self.skipTest("Requires a case-sensitive volume")
+        self.commit()
+        self.assertEqual(previous.read_bytes(), b"another case-sensitive target")
+        self.assertEqual((output / "target.docx").read_bytes(), self.pdf.with_suffix(".docx").read_bytes())
+        self.assertFalse((output / "backup").exists())
 
     def test_failed_rollback_retains_recovery_files_and_attempts_other_restores(self) -> None:
         before = self.seed_previous()

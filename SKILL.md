@@ -22,8 +22,9 @@ requested deliverable formats.
 
 - `MONKEY_RESUME_DIR` is the directory containing this file. Run scripts by
   absolute path, with one external `USER_WORKSPACE` per candidate.
-- When `$MONKEY_RESUME_DIR/.venv/bin/python` exists, use it for the Python
-  commands below, or activate that environment before running them.
+- Use the project virtual environment's Python: `.venv/Scripts/python.exe` on
+  Windows, `.venv/bin/python` on POSIX. The command blocks below use Bash syntax;
+  on Windows read `docs/guide/installation.md` for PowerShell invocation and setup.
 - Default `USER_WORKSPACE` is `~/Documents/MonkeyResume`. Personal inputs,
   proposals, cache, drafts and outputs stay outside this Skill repository.
 - `cache/candidate-state.json` holds the current Ledger, Profile and sources.

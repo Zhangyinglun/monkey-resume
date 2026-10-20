@@ -257,7 +257,10 @@ class CandidateCacheTests(unittest.TestCase):
             load_candidate_context(self.workspace)
         unsafe = self.root / "unsafe"
         unsafe.mkdir()
-        (unsafe / "cache").symlink_to(self.workspace / "cache", target_is_directory=True)
+        try:
+            (unsafe / "cache").symlink_to(self.workspace / "cache", target_is_directory=True)
+        except OSError as error:
+            self.skipTest(f"Symlink creation unavailable: {error}")
         with self.assertRaisesRegex(ValueError, "symlink"):
             validate_workspace(unsafe)
 
@@ -332,6 +335,9 @@ class CandidateCacheTests(unittest.TestCase):
         first = self.prepare("Alex")
         commit_import(self.workspace, first["source_id"], self.proposal(first, "Alex"))
         before = load_candidate_context(self.workspace)
+        prior_state = json.loads(
+            (self.workspace / "cache/candidate-state.json").read_text(encoding="utf-8")
+        )
         entity = before["ledger"]["entities"][0]
         old_id = entity["claims"][0]["claim_id"]
         prepared = self.prepare("My corrected name is Alice", "candidate_response")
@@ -344,6 +350,9 @@ class CandidateCacheTests(unittest.TestCase):
         self.assertEqual(after["candidate_id"], before["candidate_id"])
         self.assertNotIn(old_id, after["active_claim_ids"])
         self.assertEqual(len(after["ledger"]["entities"][0]["claims"]), 2)
+        history_name = before["context_id"].replace(":", "-") + ".json"
+        archived = self.workspace / "cache/state-history" / history_name
+        self.assertEqual(json.loads(archived.read_text(encoding="utf-8")), prior_state)
 
     def test_conflict_suspends_both_and_resolution(self) -> None:
         prepared = self.prepare("Built 10 services")

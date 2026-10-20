@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import argparse
-import subprocess
 import sys
 import tempfile
 from pathlib import Path
@@ -13,6 +12,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from templates.document_fonts import conversion_environment  # noqa: E402
 from templates.style_profiles import DEFAULT_STYLE, STYLES, get_style  # noqa: E402
+from vendor.openai_doc.render_docx import ensure_system_tools, rasterize  # noqa: E402
 
 
 def render_reference(docx: Path, output: Path, *, style: str = DEFAULT_STYLE, dpi: int = 144) -> None:
@@ -26,10 +26,8 @@ def render_reference(docx: Path, output: Path, *, style: str = DEFAULT_STYLE, dp
         raise ValueError("Preview DPI must be positive.")
     with tempfile.TemporaryDirectory(prefix="resume-preview-fonts-") as directory:
         env = conversion_environment(get_style(style).font_family, Path(directory))
-        subprocess.run([
-            sys.executable, str(PROJECT_ROOT / "vendor/openai_doc/render_docx.py"),
-            str(docx), "--output_dir", str(output), "--dpi", str(dpi),
-        ], env=env, check=True, capture_output=True, text=True, timeout=120)
+        ensure_system_tools()
+        rasterize(str(docx), str(output), dpi, env=env)
 
 
 def main() -> int:

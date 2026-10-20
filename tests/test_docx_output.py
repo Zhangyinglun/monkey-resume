@@ -21,6 +21,7 @@ from templates.docx_resume_template import (
 )
 from templates.layout_settings import LayoutSettings
 from templates.style_profiles import DEFAULT_STYLE, get_style
+from tests.rendering_support import rendering_available
 from tests.sample_data import sample_resume
 
 
@@ -127,7 +128,7 @@ class DocxTemplateTests(unittest.TestCase):
     def test_missing_converter_has_descriptive_error(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(generate_docx("resume.docx", sample_resume(), directory))
-            with mock.patch("shutil.which", return_value=None):
+            with mock.patch("templates.docx_resume_template.find_soffice", return_value=None):
                 with self.assertRaises(RuntimeError):
                     export_pdf(path)
 
@@ -135,9 +136,9 @@ class DocxTemplateTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(generate_docx("resume.docx", sample_resume(), directory, style=DEFAULT_STYLE))
             with (
-                mock.patch("shutil.which", side_effect=lambda name: "soffice" if name == "soffice" else None),
+                mock.patch("templates.docx_resume_template.find_soffice", return_value="mock-soffice"),
                 mock.patch("templates.docx_resume_template.conversion_environment", return_value={}),
-                mock.patch("subprocess.run", side_effect=subprocess.TimeoutExpired("soffice", 120)),
+                mock.patch("templates.docx_resume_template.run_office", side_effect=subprocess.TimeoutExpired("soffice", 120)),
             ):
                 with self.assertRaises(subprocess.TimeoutExpired):
                     export_pdf(path, style=DEFAULT_STYLE)
@@ -147,8 +148,9 @@ class DocxTemplateTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(generate_docx("resume.docx", sample_resume(), directory))
             with (
-                mock.patch("shutil.which", side_effect=lambda name: "soffice" if name == "soffice" else None),
+                mock.patch("templates.docx_resume_template.find_soffice", return_value="mock-soffice"),
                 mock.patch("templates.document_fonts.Path.is_dir", return_value=False),
+                mock.patch("templates.document_fonts.shutil.which", return_value=None),
             ):
                 with self.assertRaisesRegex(RuntimeError, "Arial Regular and Bold"):
                     export_pdf(path)
@@ -170,11 +172,7 @@ class DocxTemplateTests(unittest.TestCase):
         pdfmetrics.registerFont(TTFont("ConverterRegularOnly", str(regular)))
         with tempfile.TemporaryDirectory() as directory:
             path = Path(generate_docx("resume.docx", sample_resume(), directory, style=DEFAULT_STYLE))
-            original_run = subprocess.run
-
             def converter(command: list[str], **kwargs: object) -> subprocess.CompletedProcess:
-                if "--convert-to" not in command:
-                    return original_run(command, **kwargs)
                 canvas = Canvas(str(path.with_suffix(".pdf")))
                 canvas.setFont(replacement, 11)
                 canvas.drawString(50, 750, "This converter lost the requested font or bold face.")
@@ -183,22 +181,24 @@ class DocxTemplateTests(unittest.TestCase):
 
             for replacement in ("Helvetica", "ConverterRegularOnly"):
                 path.with_suffix(".pdf").unlink(missing_ok=True)
-                with self.subTest(replacement=replacement), mock.patch("subprocess.run", side_effect=converter):
+                with (
+                    self.subTest(replacement=replacement),
+                    mock.patch("templates.docx_resume_template.find_soffice", return_value="mock-soffice"),
+                    mock.patch("templates.docx_resume_template.run_office", side_effect=converter),
+                ):
                     with self.assertRaisesRegex(RuntimeError, "Refusing font substitution"):
                         export_pdf(path, style=DEFAULT_STYLE)
 
 
 @unittest.skipUnless(
-    shutil.which("soffice") and shutil.which("pdftoppm"), "Office/Poppler required"
+    rendering_available(), "LibreOffice, Poppler and Arial required"
 )
 class DocxRenderTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.render_style = DEFAULT_STYLE
-        try:
-            resolve_font_files(get_style(cls.render_style).font_family)
-        except (RuntimeError, OSError, subprocess.SubprocessError) as exc:
-            raise unittest.SkipTest(str(exc)) from exc
+        if not rendering_available():
+            raise unittest.SkipTest("LibreOffice, Poppler and Arial required")
 
     def test_actual_docx_contact_wrapping_blocks_pdf_qa(self) -> None:
         from scripts.check_pdf_quality import check_pdf_file
@@ -251,10 +251,7 @@ class DocxRenderTests(unittest.TestCase):
     def test_default_render_uses_actual_arial_fonts(self) -> None:
         import pdfplumber
 
-        try:
-            resolve_font_files("Arial")
-        except RuntimeError as exc:
-            self.skipTest(f"Actual Arial rendering not tested: {exc}")
+        resolve_font_files("Arial")
         with tempfile.TemporaryDirectory() as directory:
             pdf = Path(generate_resume("fonts.pdf", sample_resume(), directory))
             with pdfplumber.open(pdf) as rendered:

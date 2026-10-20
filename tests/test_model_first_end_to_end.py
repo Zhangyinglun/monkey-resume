@@ -3,8 +3,6 @@
 from __future__ import annotations
 
 import json
-import shutil
-import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -13,8 +11,8 @@ from unittest.mock import patch
 from scripts.candidate_cache import commit_import, load_candidate_context, prepare_import
 from scripts.draft_compiler import compile_draft
 from scripts.generate_final_resume import ReviewNotReady, prepare_candidate, publish_candidate
-from templates.document_fonts import resolve_font_files
-from templates.style_profiles import DEFAULT_STYLE, get_style
+from templates.style_profiles import DEFAULT_STYLE
+from tests.rendering_support import rendering_available
 
 
 def ingest_notes(root: Path) -> tuple[Path, dict, dict]:
@@ -155,16 +153,14 @@ class ModelFirstIntegrationTests(unittest.TestCase):
 
 
 @unittest.skipUnless(
-    shutil.which("soffice") and shutil.which("pdftoppm"), "Office/Poppler required"
+    rendering_available(), "LibreOffice, Poppler and Arial required"
 )
 class RealCandidateIntegrationTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.render_style = DEFAULT_STYLE
-        try:
-            resolve_font_files(get_style(cls.render_style).font_family)
-        except (RuntimeError, OSError, subprocess.SubprocessError) as exc:
-            raise unittest.SkipTest(str(exc)) from exc
+        if not rendering_available():
+            raise unittest.SkipTest("LibreOffice, Poppler and Arial required")
 
     def test_real_cache_render_review_gate_and_history_use_identical_artifacts(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

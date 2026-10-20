@@ -28,6 +28,8 @@ Design previews are not Accepted Resumes.
 
 ## Install
 
+Linux / macOS (Bash):
+
 ```bash
 git clone https://github.com/Zhangyinglun/monkey-resume.git ~/Projects/monkey-resume
 cd ~/Projects/monkey-resume
@@ -37,6 +39,10 @@ python3 -m pip install -r requirements.txt
 mkdir -p ~/.agents/skills
 ln -s ~/Projects/monkey-resume ~/.agents/skills/monkey-resume
 ```
+
+For native Windows, use the [PowerShell installation and validation commands](docs/guide/installation.md#windows-powershell-no-wsl-required).
+WSL is not required. Use `.venv\Scripts\python.exe`; LibreOffice's bundled Python
+is not the project interpreter.
 
 Rendering also needs LibreOffice, Poppler and Arial. Install Arial separately under its
 license; font files are not bundled. Missing fonts or actual rendered substitution

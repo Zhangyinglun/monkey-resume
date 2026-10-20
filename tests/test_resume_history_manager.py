@@ -67,9 +67,12 @@ class ResumeHistoryManagerTests(unittest.TestCase):
             history.history_path(history.PROJECT_ROOT)
         with tempfile.TemporaryDirectory() as directory:
             workspace = Path(directory)
-            (workspace / "resume_history").symlink_to(
-                history.PROJECT_ROOT, target_is_directory=True
-            )
+            try:
+                (workspace / "resume_history").symlink_to(
+                    history.PROJECT_ROOT, target_is_directory=True
+                )
+            except OSError as error:
+                self.skipTest(f"Symlink creation unavailable: {error}")
             with self.assertRaises(ValueError):
                 history.history_path(workspace)
 

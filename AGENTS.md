@@ -32,6 +32,10 @@ ruff check scripts templates tests
 python3 -m unittest discover -s tests -v
 ```
 
+On Windows use `.venv\Scripts\python.exe` and `.venv\Scripts\skills-ref.exe`
+without activation; PowerShell commands are in `docs/guide/installation.md`.
+Keep file names portable and exercise both Windows and POSIX lock paths in CI.
+
 ## Editing Rules
 
 - Use `pathlib.Path` and UTF-8 text I/O.
