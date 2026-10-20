@@ -95,7 +95,7 @@ _ACTION_VERB_RE = re.compile(
     re.IGNORECASE,
 )
 _SKILL_REQUIRED = ("category", "items")
-_EXPERIENCE_REQUIRED = ("company", "title", "dates", "bullets")
+_EXPERIENCE_REQUIRED = ("company", "title", "dates", "location", "bullets")
 _EDUCATION_REQUIRED = ("school", "degree", "dates")
 
 
@@ -114,7 +114,9 @@ def normalize_skill_items(value: Any) -> list[str]:
 def validate_resume_content(payload: dict[str, Any], *, require_non_empty: bool = False) -> None:
     """Validate resume JSON has required keys and correct types.
 
-    When *require_non_empty* is True, required fields must also be non-empty.
+    When *require_non_empty* is True, required fields, including nested fact
+    strings on selected entries, must also be non-empty. This checks presence,
+    not whether the supplied text is factually supported.
     """
     if "summary" in payload:
         raise ValueError(
@@ -154,6 +156,8 @@ def validate_resume_content(payload: dict[str, Any], *, require_non_empty: bool 
                 raise ValueError(f"skills[{i}] missing required field: {field}")
         if not isinstance(entry["category"], str):
             raise ValueError(f"skills[{i}].category must be a str")
+        if require_non_empty and not entry["category"].strip():
+            raise ValueError(f"skills[{i}].category must be non-empty")
         items_value = entry["items"]
         if not isinstance(items_value, list):
             raise ValueError(f"skills[{i}].items must be an array of strings")
@@ -168,11 +172,11 @@ def validate_resume_content(payload: dict[str, Any], *, require_non_empty: bool 
         for field in _EXPERIENCE_REQUIRED:
             if field not in entry:
                 raise ValueError(f"experience[{i}] missing required field: {field}")
-        for field in ("company", "title", "dates"):
+        for field in ("company", "title", "dates", "location"):
             if not isinstance(entry[field], str):
                 raise ValueError(f"experience[{i}].{field} must be a str")
-        if "location" in entry and not isinstance(entry["location"], str):
-            raise ValueError(f"experience[{i}].location must be a str")
+            if require_non_empty and not entry[field].strip():
+                raise ValueError(f"experience[{i}].{field} must be non-empty")
         if not isinstance(entry["bullets"], list):
             raise ValueError(f"experience[{i}].bullets must be a list")
         for j, bullet in enumerate(entry["bullets"]):
@@ -186,12 +190,11 @@ def validate_resume_content(payload: dict[str, Any], *, require_non_empty: bool 
         for field in _EDUCATION_REQUIRED:
             if field not in entry:
                 raise ValueError(f"education[{i}] missing required field: {field}")
-        if not isinstance(entry["school"], str):
-            raise ValueError(f"education[{i}].school must be a str")
-        if not isinstance(entry["degree"], str):
-            raise ValueError(f"education[{i}].degree must be a str")
-        if not isinstance(entry["dates"], str):
-            raise ValueError(f"education[{i}].dates must be a str")
+        for field in _EDUCATION_REQUIRED:
+            if not isinstance(entry[field], str):
+                raise ValueError(f"education[{i}].{field} must be a str")
+            if require_non_empty and not entry[field].strip():
+                raise ValueError(f"education[{i}].{field} must be non-empty")
         if "location" in entry and not isinstance(entry["location"], str):
             raise ValueError(f"education[{i}].location must be a str")
 
@@ -213,6 +216,8 @@ def validate_resume_content(payload: dict[str, Any], *, require_non_empty: bool 
             for field in string_fields:
                 if field in entry and not isinstance(entry[field], str):
                     raise ValueError(f"{key}[{i}].{field} must be a str")
+                if require_non_empty and field in required_fields and not entry[field].strip():
+                    raise ValueError(f"{key}[{i}].{field} must be non-empty")
             if "bullets" in entry:
                 if not isinstance(entry["bullets"], list):
                     raise ValueError(f"{key}[{i}].bullets must be a list")

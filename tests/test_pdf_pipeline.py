@@ -20,6 +20,7 @@ def quality_report(**changes: object) -> dict:
         "margins": {"top": 25.0, "bottom": 40.0, "left": 30.0, "right": 30.0},
         "missing_sections": [],
         "contact": {"email": True, "phone": False, "linkedin": False},
+        "contact_layout": {"measured": True, "line_count": 1, "expected": 1},
         "missing_keywords": [],
         "provided_keywords": [],
         "layout_warnings": [],
@@ -56,6 +57,10 @@ class PdfQualityPolicyTests(unittest.TestCase):
             {"width_mm": 180.0},
             {"min_font_pt": 6.0},
             {"bounds_findings": [{"page": 1, "text": "clipped"}]},
+            {"contact_layout": {"measured": True, "line_count": 2}},
+            {"contact_layout": {"measured": True, "line_count": 0}},
+            {"contact_layout": None},
+            {"contact_layout": {"measured": False, "line_count": 1}},
         ):
             with self.subTest(changes=changes):
                 self.assertEqual(quality_report(**changes)["verdict"], "NEED-ADJUSTMENT")

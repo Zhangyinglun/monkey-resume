@@ -21,6 +21,7 @@ def sample_resume() -> dict[str, Any]:
                 "company": "Example Corp",
                 "title": "Software Engineer",
                 "dates": "2020 - Present",
+                "location": "Seattle",
                 "bullets": ["Built distributed APIs using Python."],
             }
         ],
@@ -35,6 +36,32 @@ def sample_resume() -> dict[str, Any]:
 
 
 class ResumeSharedTests(unittest.TestCase):
+    def test_required_facts_reject_missing_null_and_blank_values(self) -> None:
+        fields = [
+            (None, field) for field in ("name", "contact")
+        ] + [
+            ("experience", field) for field in ("company", "title", "dates", "location")
+        ] + [
+            ("education", field) for field in ("school", "degree", "dates")
+        ]
+        for section, field in fields:
+            for value in (None, "", " \t\n", 123):
+                resume = sample_resume()
+                entry = resume if section is None else resume[section][0]
+                entry[field] = value
+                with self.subTest(section=section, field=field, value=value):
+                    with self.assertRaisesRegex(ValueError, field):
+                        validate_resume_content(resume, require_non_empty=True)
+            resume = sample_resume()
+            entry = resume if section is None else resume[section][0]
+            entry.pop(field)
+            with self.subTest(section=section, field=field, missing=True):
+                with self.assertRaisesRegex(ValueError, field):
+                    validate_resume_content(resume, require_non_empty=True)
+
+    def test_education_location_remains_optional(self) -> None:
+        validate_resume_content(sample_resume(), require_non_empty=True)
+
     def test_resume_without_summary_passes_strict_validation(self) -> None:
         resume = sample_resume()
         validate_resume_content(resume, require_non_empty=True)

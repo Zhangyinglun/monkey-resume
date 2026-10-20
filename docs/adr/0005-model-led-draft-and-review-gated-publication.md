@@ -17,8 +17,16 @@ and `omissions`; the pure display projection remains separate from evidence IDs.
 `prepare` freezes candidate context, draft, compiled result, DOCX/PDF hashes,
 author identity and output filename, then supplies a pending review template.
 Review first freezes blind JD/visible-resume reading, then checks all original
-evidence, corrections, assertion scope and important omissions. Actual DOCX and
-same-source PDF previews join this content review stage. `publish` requires a
+evidence, corrections, assertion scope and important omissions. A program-enumerated
+fact checklist covers personal information,
+education, employment, skills and optional sections. Each section's independent
+review records accuracy and completeness against full evidence, including omitted
+whole entries. Publication enforces exact path coverage and passing review records;
+it does not infer semantic truth from strings or status flags. Direct viewing
+of the exact DOCX in a document reader joins this content review stage; record
+the reader name/version and actual observations. PDF-derived images cannot
+fulfill this check. PDF visual review is additionally required for PDF delivery.
+`publish` requires a
 complete current independent review, no blocking findings, actual visual checks
 and measured readable single-page A4 QA. Reviewer independence is declared host
 provenance, not cryptographic proof; self-review cannot approve publication.

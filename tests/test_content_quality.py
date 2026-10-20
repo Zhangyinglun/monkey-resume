@@ -28,6 +28,7 @@ class ContentQualityTests(unittest.TestCase):
                 {
                     "company": "Example",
                     "title": "Engineer",
+                    "location": "Seattle",
                     "dates": "2020 - Present",
                     "bullets": [
                         "Built a deployment guard using Python, preventing invalid releases.",
@@ -50,6 +51,7 @@ class ContentQualityTests(unittest.TestCase):
             {
                 "company": f"Company {index}",
                 "title": "Engineer",
+                "location": "Seattle",
                 "dates": "2020 - Present",
                 "bullets": [
                     "Built reliable services using Python, improving operational resilience.",
@@ -73,6 +75,7 @@ class ContentQualityTests(unittest.TestCase):
                 {
                     "company": "Example",
                     "title": "Engineer",
+                    "location": "Seattle",
                     "dates": "2020 - Present",
                     "bullets": [
                         "Successfully leveraged a cutting-edge platform, fostering seamless collaboration.",
@@ -100,6 +103,7 @@ class ContentQualityTests(unittest.TestCase):
                 {
                     "company": "Example",
                     "title": "Engineer",
+                    "location": "Seattle",
                     "dates": "2020 - Present",
                     "bullets": [
                         "Led API design, SDK documentation, and launch reviews.",

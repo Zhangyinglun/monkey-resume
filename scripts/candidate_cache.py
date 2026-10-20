@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 import copy
-import fcntl
 import hashlib
 import json
 import os
+import stat
 import tempfile
 import uuid
 from contextlib import contextmanager
@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Iterator
 
 from scripts.extract_resume_text import extract_resume_blocks
+from scripts.file_lock import exclusive_file_lock
 
 SCHEMA_VERSION = 2
 REPOSITORY = Path(__file__).resolve().parent.parent
@@ -36,6 +37,13 @@ def _safe(path: Path) -> None:
     for part in (path, *path.parents):
         if part.is_symlink():
             raise ValueError(f"Unsafe symlink target: {part}")
+        if os.name == "nt":
+            try:
+                attributes = part.lstat().st_file_attributes
+            except FileNotFoundError:
+                continue
+            if attributes & stat.FILE_ATTRIBUTE_REPARSE_POINT:
+                raise ValueError(f"Unsafe reparse point target: {part}")
 
 
 def validate_workspace(workspace: Path) -> Path:
@@ -43,6 +51,10 @@ def validate_workspace(workspace: Path) -> Path:
     workspace = Path(workspace).expanduser().absolute()
     if workspace.is_symlink():
         raise ValueError(f"Unsafe symlink workspace: {workspace}")
+    if os.name == "nt":
+        _safe(workspace)
+    # POSIX system prefixes can be aliases (macOS /var -> /private/var).
+    # Canonicalize those before checking the authoritative cache paths.
     workspace = workspace.resolve()
     if workspace == REPOSITORY or REPOSITORY in workspace.parents:
         raise ValueError("Candidate workspace must be outside the Skill repository.")
@@ -63,13 +75,8 @@ def workspace_lock(workspace: Path) -> Iterator[Path]:
     workspace = validate_workspace(workspace)
     cache = workspace / "cache"
     cache.mkdir(parents=True, exist_ok=True)
-    descriptor = os.open(cache / "import.lock", os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
-    with os.fdopen(descriptor, "a") as stream:
-        fcntl.flock(stream, fcntl.LOCK_EX)
-        try:
-            yield workspace
-        finally:
-            fcntl.flock(stream, fcntl.LOCK_UN)
+    with exclusive_file_lock(cache / "import.lock"):
+        yield workspace
 
 
 def _read(path: Path) -> dict:
@@ -657,7 +664,8 @@ def commit_import(workspace: Path, source_id: str, proposal: dict) -> dict:
         )
         # History is staged before the only authoritative commit point.
         if state_path.exists():
-            history = workspace / "cache/state-history" / f"{context['context_id']}.json"
+            history_name = context["context_id"].replace(":", "-") + ".json"
+            history = workspace / "cache/state-history" / history_name
             if not history.exists():
                 _write(history, _state(workspace))
         _write(state_path, state)

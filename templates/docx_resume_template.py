@@ -8,7 +8,6 @@ from __future__ import annotations
 import hashlib
 import platform
 import re
-import shutil
 import subprocess
 import tempfile
 from importlib.metadata import version
@@ -27,6 +26,7 @@ from scripts.resume_shared import normalize_skill_items, validate_resume_content
 from templates.design_tokens import DesignTokens
 from templates.document_fonts import conversion_environment, resolve_font_files, validate_pdf_fonts
 from templates.layout_settings import LayoutSettings
+from templates.office_tools import find_soffice, run_office
 from templates.style_profiles import DEFAULT_STYLE, get_style
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -86,7 +86,7 @@ def _add_text(paragraph: Any, text: str, *, bold: bool = False) -> None:
 def generate_docx(output_file: str, content_dict: dict[str, Any], base_dir: str,
                   layout: LayoutSettings | None = None,
                   tokens: DesignTokens | None = None, *, style: str = DEFAULT_STYLE) -> str:
-    validate_resume_content(content_dict)
+    validate_resume_content(content_dict, require_non_empty=True)
     profile = get_style(style)
     settings, design_tokens = profile.resolve_layout(layout), tokens or profile.tokens
     profile.validate(settings, design_tokens)
@@ -206,7 +206,8 @@ def generate_docx(output_file: str, content_dict: dict[str, Any], base_dir: str,
                 row(' - '.join(str(item[k]) for k in ('name', extra) if item.get(k)), item.get('dates', ''))
     heading('EDUCATION')
     for edu in content_dict['education']:
-        row(edu.get('school', ''), edu.get('dates', ''))
+        row(' | '.join(str(edu[k]) for k in ('school', 'location') if edu.get(k)),
+            edu.get('dates', ''))
         if edu.get('degree'):
             paragraph(edu['degree'], design_tokens.education_font_size, after=design_tokens.education_space_after)
     _explicit_fonts(doc, profile.font_family)
@@ -216,7 +217,7 @@ def generate_docx(output_file: str, content_dict: dict[str, Any], base_dir: str,
 
 def export_pdf(docx_path: Path, *, style: str = DEFAULT_STYLE) -> Path:
     """Use the installed mature office renderer; never silently fall back to another layout."""
-    soffice = shutil.which('soffice') or shutil.which('libreoffice')
+    soffice = find_soffice()
     if not soffice:
         raise RuntimeError('LibreOffice is required for DOCX layout QA and PDF export.')
     family = get_style(style).font_family
@@ -225,10 +226,10 @@ def export_pdf(docx_path: Path, *, style: str = DEFAULT_STYLE) -> Path:
         raise FileExistsError(f'Refusing stale PDF export: {target}')
     with tempfile.TemporaryDirectory(prefix='resume-office-profile-') as profile:
         env = conversion_environment(family, Path(profile) / "fonts")
-        result = subprocess.run(
+        result = run_office(
             [soffice, '-env:UserInstallation=' + Path(profile).as_uri(), '--headless',
              '--convert-to', 'pdf:writer_pdf_Export', '--outdir', str(docx_path.parent), str(docx_path)],
-            capture_output=True, text=True, timeout=120, check=False, env=env,
+            timeout=120, env=env,
         )
     if result.returncode or not target.is_file() or not target.read_bytes().startswith(b'%PDF'):
         raise RuntimeError('LibreOffice PDF export failed: ' + result.stdout + result.stderr)
@@ -247,11 +248,11 @@ def generate_resume(output_file: str, content_dict: dict[str, Any], base_dir: st
 
 def rendering_environment(*, style: str = DEFAULT_STYLE) -> dict[str, Any]:
     """Record the renderer and installed font files, without resume content."""
-    soffice = shutil.which("soffice") or shutil.which("libreoffice")
+    soffice = find_soffice()
     renderer_version = None
     if soffice:
         try:
-            result = subprocess.run([soffice, "--version"], capture_output=True, text=True, timeout=15, check=False)
+            result = run_office([soffice, "--version"], timeout=15)
             if result.returncode == 0:
                 renderer_version = result.stdout.strip() or None
         except (OSError, subprocess.SubprocessError):

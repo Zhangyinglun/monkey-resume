@@ -5,9 +5,12 @@ Review v2: schema_version, candidate_id (render UUID), context_id,
 draft_fingerprint, resume_fingerprint, docx_sha256, pdf_sha256; content:
 {status: complete, verdict: pass, reviewer_id: nonempty, independent: true,
 findings: [{severity: blocking|suggestion, ...}]}; visual: {status: pass,
-pages: [1], docx_preview_inspected: true, pdf_preview_inspected: true}.
+method: direct_docx, reader: {name, version}, pages: [1], observations: nonempty,
+docx_preview_inspected: true}. PDF inspection is required only for PDF delivery.
 Independence is host provenance, not cryptographic proof. Extra review evidence
 (blind reading, evidence checks, source locations) is retained unchanged.
+Evidence review requires accuracy/completeness records covering the frozen fact
+checklist in every section; coverage does not certify semantic truth.
 """
 
 from __future__ import annotations
@@ -32,7 +35,11 @@ from scripts.accepted_resume_publication import (  # noqa: E402
 from scripts.check_pdf_quality import check_pdf_file  # noqa: E402
 from scripts.layout_auto_tuner import auto_fit_layout  # noqa: E402
 from scripts.resume_history_manager import validate_job_url  # noqa: E402
-from scripts.resume_shared import add_workspace_argument, load_json_file  # noqa: E402
+from scripts.resume_shared import (  # noqa: E402
+    add_workspace_argument,
+    iter_resume_text_fields,
+    load_json_file,
+)
 from templates.document_fonts import validate_pdf_fonts  # noqa: E402
 from templates.docx_resume_template import generate_resume, rendering_environment  # noqa: E402
 from templates.layout_settings import LayoutSettings
@@ -67,6 +74,22 @@ class ReviewNotReady(ValueError):
     """Valid inputs lack passing review or physical QA (CLI exit 2)."""
 
 
+def _fact_check_paths(resume: dict) -> dict[str, list[str]]:
+    """Enumerate displayed assertions; reviewers still judge truth and omissions."""
+    sections: dict[str, list[str]] = {
+        section: [] for section in (
+            "personal", "education", "experience", "skills", "projects",
+            "certifications", "awards",
+        )
+    }
+    for path, _, _, _ in iter_resume_text_fields(resume):
+        if path.endswith(".category"):
+            continue  # Group names are presentation metadata.
+        section = "personal" if path in {"name", "contact"} else path.split("[", 1)[0]
+        sections[section].append(path)
+    return sections
+
+
 def _sha(path: Path) -> str:
     if path.is_symlink() or not path.is_file():
         raise ValueError(f"Missing or unsafe candidate file: {path}")
@@ -91,14 +114,20 @@ def _qa_passes(report: dict) -> bool:
     by_name = {c.get("name"): c for c in checks if isinstance(c, dict)}
     if any(
         by_name.get(name, {}).get("passed") is not True
-        for name in ("page_count", "page_size", "text_layer", "page_bounds", "font_readability")
+        for name in (
+            "page_count", "page_size", "text_layer", "page_bounds", "font_readability",
+            "contact_single_line",
+        )
     ):
         return False
     if by_name["page_count"].get("detail", {}).get("count") != 1:
         return False
     if by_name["font_readability"].get("detail", {}).get("measured") is not True:
         return False
-    # Fixed contact/section/keyword rules and whitespace preferences are advisory.
+    contact_layout = by_name["contact_single_line"].get("detail", {})
+    if contact_layout.get("measured") is not True or contact_layout.get("line_count") != 1:
+        return False
+    # PDF contact/section heuristics are advisory; source completeness is reviewed separately.
     advisory = {
         "contact_info",
         "section_completeness",
@@ -183,6 +212,7 @@ def prepare_candidate(
             "context_id": compiled["context_id"],
             "draft_fingerprint": compiled["draft_fingerprint"],
             "resume_fingerprint": compiled["resume_fingerprint"],
+            "fact_check_paths": _fact_check_paths(compiled["resume"]),
             "draft_sha256": _sha(directory / "draft.json"),
             "compiled_sha256": _sha(directory / "compiled.json"),
             "pdf_sha256": _sha(pdf) if pdf.is_file() else None,
@@ -225,6 +255,16 @@ def prepare_candidate(
                 "context_id": record["context_id"],
                 "assertion_review": "",
                 "omission_review": "",
+                "fact_review": {
+                    section: {
+                        "status": "pending",
+                        "expected_paths": paths,
+                        "checked_paths": [],
+                        "accuracy_review": "",
+                        "completeness_review": "",
+                    }
+                    for section, paths in record["fact_check_paths"].items()
+                },
             },
             review_context={"mode": "unavailable", "identifier": "", "model": None},
             content={
@@ -236,9 +276,12 @@ def prepare_candidate(
             },
             visual={
                 "status": "pending",
+                "method": "direct_docx",
+                "reader": {"name": "", "version": ""},
                 "pages": [],
                 "docx_preview_inspected": False,
                 "pdf_preview_inspected": False,
+                "observations": "",
             },
         )
         _write(directory / "review-template.json", template)
@@ -260,7 +303,7 @@ def prepare_candidate(
         }
 
 
-def _validate_review(review: dict, record: dict) -> None:
+def _validate_review(review: dict, record: dict, *, output_format: str = "docx") -> None:
     if not isinstance(review, dict):
         raise ReviewNotReady("Review must be an object.")
     for key in (
@@ -309,6 +352,33 @@ def _validate_review(review: dict, record: dict) -> None:
         raise ReviewNotReady(
             "Complete bound assertion and important-omission review results required."
         )
+    expected = record.get("fact_check_paths")
+    facts = evidence.get("fact_review")
+    if (
+        not isinstance(expected, dict)
+        or set(expected) != set(_fact_check_paths({}))
+        or not isinstance(facts, dict)
+        or set(facts) != set(expected)
+    ):
+        raise ReviewNotReady("Fact review of every resume section required; reprepare if absent.")
+    for section, paths in expected.items():
+        result = facts[section]
+        checked = result.get("checked_paths") if isinstance(result, dict) else None
+        if (
+            not isinstance(paths, list)
+            or not isinstance(result, dict)
+            or result.get("status") != "pass"
+            or result.get("expected_paths") != paths
+            or not isinstance(checked, list)
+            or any(not isinstance(path, str) for path in checked)
+            or len(checked) != len(paths)
+            or set(checked) != set(paths)
+            or not populated(result.get("accuracy_review"))
+            or not populated(result.get("completeness_review"))
+        ):
+            raise ReviewNotReady(
+                f"{section}: passing accuracy and completeness review of every displayed fact required."
+            )
     if (
         not isinstance(execution, dict)
         or execution.get("mode") not in ("independent_subagent", "independent_human")
@@ -333,14 +403,23 @@ def _validate_review(review: dict, record: dict) -> None:
         raise ReviewNotReady(
             "Independent, complete content review without blocking findings required."
         )
+    reader = visual.get("reader")
     if (
         visual.get("status") != "pass"
+        or visual.get("method") != "direct_docx"
+        or not isinstance(reader, dict)
+        or not populated(reader.get("name"))
+        or not populated(reader.get("version"))
+        or not populated(visual.get("observations"))
         or visual.get("pages") != [1]
         or any(type(p) is not int for p in visual.get("pages", []))
         or visual.get("docx_preview_inspected") is not True
-        or visual.get("pdf_preview_inspected") is not True
     ):
-        raise ReviewNotReady("Every actual DOCX/PDF page must have completed visual inspection.")
+        raise ReviewNotReady(
+            "Direct DOCX visual inspection with reader name/version and observations required."
+        )
+    if output_format in {"pdf", "both"} and visual.get("pdf_preview_inspected") is not True:
+        raise ReviewNotReady("PDF delivery also requires actual PDF page inspection.")
 
 
 def publish_candidate(
@@ -387,6 +466,8 @@ def publish_candidate(
         ):
             raise ValueError("Candidate context is stale; prepare a new candidate.")
         compiled = compile_draft(load_json_file(directory / "draft.json"), context)
+        if record.get("fact_check_paths") != _fact_check_paths(compiled["resume"]):
+            raise ReviewNotReady("Fact checklist differs from frozen resume; prepare a new candidate.")
         if compiled != load_json_file(directory / "compiled.json"):
             raise ValueError("Frozen draft compilation no longer matches current evidence.")
         for key in ("context_id", "draft_fingerprint", "resume_fingerprint", "target"):
@@ -403,7 +484,7 @@ def publish_candidate(
         for artifact in (pdf, docx):
             if _sha(artifact) != record[artifact.suffix[1:] + "_sha256"]:
                 raise ValueError("Actual candidate artifact changed after review.")
-        _validate_review(review, record)
+        _validate_review(review, record, output_format=output_format)
         profile = get_style()
         try:
             stored_style = record["style"]
@@ -419,7 +500,9 @@ def publish_candidate(
             raise ReviewNotReady(str(exc)) from exc
         qa = check_pdf_file(pdf, minimum_font_pt=profile.minimum_font_pt)
         if not _qa_passes(qa):
-            raise ReviewNotReady("Actual PDF must pass one-page A4 and readable geometry QA.")
+            raise ReviewNotReady(
+                "Actual PDF must pass one-page A4, single-line contact and readable geometry QA."
+            )
         committed = commit_accepted_resume(
             workspace,
             pdf,

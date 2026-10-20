@@ -98,7 +98,7 @@ def _validate_target(target: dict) -> None:
 
 
 def _validate_display(resume: dict) -> None:
-    validate_resume_content(resume)
+    validate_resume_content(resume, require_non_empty=True)
     unknown = set(resume) - {"name", "contact", "project_heading", *_SECTIONS}
     if unknown:
         raise ValueError(f"unknown resume display fields: {sorted(unknown)}")

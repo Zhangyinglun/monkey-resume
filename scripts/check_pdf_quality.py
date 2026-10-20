@@ -20,6 +20,7 @@ if str(PROJECT_ROOT) not in sys.path:
 from scripts.check_pdf_geometry import (  # noqa: E402
     check_pdf_geometry,
     estimate_page_margins_mm,
+    measure_contact_layout,
     points_to_mm,
 )
 from scripts.resume_shared import term_matches  # noqa: E402
@@ -122,6 +123,7 @@ def build_quality_report(
     bounds_findings: list[dict[str, Any]] | None = None,
     min_font_pt: float | None = None,
     minimum_font_pt: float = 10.5,
+    contact_layout: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     checks: list[dict[str, Any]] = []
 
@@ -220,6 +222,17 @@ def build_quality_report(
             "name": "contact_info",
             "passed": contact_ok,
             "detail": contact,
+        }
+    )
+    contact_geometry = contact_layout or {"measured": False, "line_count": None, "expected": 1}
+    checks.append(
+        {
+            "name": "contact_single_line",
+            "passed": (
+                contact_geometry.get("measured") is True
+                and contact_geometry.get("line_count") == 1
+            ),
+            "detail": contact_geometry,
         }
     )
 
@@ -378,6 +391,11 @@ def _format_text_report(report: dict[str, Any], pdf_name: str, args: argparse.Na
         else "Incomplete contact info (need at least Email + Phone/LinkedIn)"
     )
     lines.append(f"10. Contact Info: {mark} {msg}")
+    contact_layout = checks["contact_single_line"]
+    mark = "\u2713" if contact_layout["passed"] else "\u2717"
+    count = contact_layout["detail"].get("line_count")
+    message = f"{count} rendered line(s); expected 1" if count is not None else "Measurement unavailable"
+    lines.append(f"   Contact Layout: {mark} {message}")
 
     # Keywords
     kw = checks["keyword_coverage"]
@@ -512,6 +530,7 @@ def check_pdf_file(
             bounds_findings=bounds_findings,
             min_font_pt=min(sizes) if sizes else None,
             minimum_font_pt=minimum_font_pt,
+            contact_layout=measure_contact_layout(first_page),
         )
 
 

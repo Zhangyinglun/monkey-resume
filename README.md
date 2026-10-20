@@ -10,7 +10,8 @@ only when the user requests it or an application entrance explicitly requires it
 A same-source PDF is retained internally for QA and history.
 
 Traceability is not proof of truth. Publication requires a complete independent
-content review and actual visual inspection, plus measured one-page A4 QA.
+content review and direct DOCX visual inspection in a named/versioned document
+reader, plus measured one-page A4 QA. PDF images cannot replace the DOCX check.
 Unsupported requirements remain gaps, not invented experience. Professional
 positioning appears in experience and skills; generated resumes have no Summary
 section.
@@ -27,6 +28,8 @@ Design previews are not Accepted Resumes.
 
 ## Install
 
+Linux / macOS (Bash):
+
 ```bash
 git clone https://github.com/Zhangyinglun/monkey-resume.git ~/Projects/monkey-resume
 cd ~/Projects/monkey-resume
@@ -37,12 +40,17 @@ mkdir -p ~/.agents/skills
 ln -s ~/Projects/monkey-resume ~/.agents/skills/monkey-resume
 ```
 
+For native Windows, use the [PowerShell installation and validation commands](docs/guide/installation.md#windows-powershell-no-wsl-required).
+WSL is not required. Use `.venv\Scripts\python.exe`; LibreOffice's bundled Python
+is not the project interpreter.
+
 Rendering also needs LibreOffice, Poppler and Arial. Install Arial separately under its
 license; font files are not bundled. Missing fonts or actual rendered substitution
 block a candidate from passing, even if a replacement looks similar. See
 [output and QA](references/docx-output.md) for setup and environment limitations.
-Local LibreOffice checks are reported separately from user-run checks in Word,
-Google Docs or other readers; identical display across software is not guaranteed.
+Automated PDF measurements and direct DOCX reader results are reported separately;
+identical display across software is not guaranteed. Direct inspection requires
+host access to the reader's paginated view or an independent human review.
 Restart OpenCode after installing/updating the Skill or agent instructions.
 
 For development, use Python 3.11 or newer, activate `.venv` and install
@@ -61,7 +69,7 @@ Use $monkey-resume to import this document into my candidate cache. No JD or out
 **Tailor and deliver:** provide the original JD and existing candidate sources:
 
 ```text
-Use $monkey-resume to tailor my resume for this role. Independently review the content and actual one-page DOCX/PDF before publishing. Deliver DOCX, and PDF if requested.
+Use $monkey-resume to tailor my resume for this role. Independently review the content and directly inspect the one-page DOCX in a document reader before publishing. Deliver DOCX, and inspect/deliver PDF if requested.
 ```
 
 1. Preserve original bytes and ordered text blocks; the model reads the full
@@ -72,7 +80,8 @@ Use $monkey-resume to tailor my resume for this role. Independently review the c
    Programs compute manifests and fingerprints; there is no separate writing plan.
 4. `prepare` freezes the draft, artifact hashes, output name and review template.
    Review first JD/visible resume blind, then full evidence and omissions; inspect
-   every page of the actual DOCX preview and same-source PDF.
+   every DOCX page directly in a reader and record its name/version and
+   observations. Inspect PDF pages additionally when delivering PDF.
 5. `publish` requires passing current review and physical QA. Incomplete review or
    rendering leaves a candidate only; handled failures preserve accepted outputs
    and history. No automatic PASS or self-review approval.

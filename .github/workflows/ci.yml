@@ -6,12 +6,16 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    env:
+      PYTHONUTF8: "1"
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
     defaults:
       run:
         working-directory: monkey-resume
     strategy:
       matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
         python-version: ["3.11", "3.12"]
     steps:
       - uses: actions/checkout@v4
@@ -20,12 +24,24 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-      - run: sudo apt-get update && sudo apt-get install -y libreoffice-writer poppler-utils
+      - if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libreoffice-writer poppler-utils
+      - if: runner.os == 'Windows'
+        run: |
+          choco install libreoffice-fresh poppler --yes --no-progress --execution-timeout=600
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - if: runner.os == 'Windows'
+        run: python -c "import shutil; assert shutil.which('pdftoppm') and shutil.which('pdfinfo'), 'Poppler must be on PATH'"
+      - if: runner.os == 'macOS'
+        run: |
+          brew install --cask libreoffice
+          brew install poppler
       - run: python -m pip install -r requirements-dev.txt
       - if: matrix.python-version == '3.12'
         run: skills-ref validate "${{ github.workspace }}/monkey-resume"
       - run: ruff check scripts templates tests
       - run: python -m unittest discover -s tests -v
-        # Tests use the current Arial workflow. Actual rendering explicitly skips
-        # when separately licensed Arial is unavailable on the runner; portable
-        # structure and missing-font failure checks still run.
+        env:
+          MONKEY_RESUME_REQUIRE_RENDERING: ${{ runner.os != 'Linux' && '1' || '0' }}
+        # Windows/macOS require real Arial rendering; Linux may skip it when the
+        # separately licensed font is unavailable. Failure-path tests still run.

@@ -9,10 +9,15 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import shutil
+import stat
 import tempfile
+import unicodedata
+from collections.abc import Callable
 from datetime import datetime, timezone
 from pathlib import Path
+from types import TracebackType
 from typing import Any
 from uuid import uuid4
 
@@ -31,6 +36,11 @@ def validate_output_name(name: str) -> str:
         not isinstance(name, str)
         or Path(name).name != name
         or "\\" in name
+        or any(character in name for character in '<>:"|?*')
+        or name.split(".", 1)[0].rstrip(" .").upper() in {
+            "CON", "PRN", "AUX", "NUL", "CONIN$", "CONOUT$",
+            *(f"{prefix}{number}" for prefix in ("COM", "LPT") for number in "123456789¹²³"),
+        }
         or any(ord(c) < 32 or ord(c) == 127 for c in name)
         or Path(name).suffix.lower() not in {".docx", ".pdf"}
     ):
@@ -38,10 +48,43 @@ def validate_output_name(name: str) -> str:
     return name
 
 
+def _retry_readonly_cleanup(
+    remove: Callable[[str], object],
+    path: str,
+    error_info: tuple[type[BaseException], BaseException, TracebackType],
+) -> None:
+    """Only clear the Windows readonly bit on files owned by this staging tree."""
+    error = error_info[1]
+    target = Path(path)
+    if (
+        os.name == "nt" and isinstance(error, PermissionError)
+        and target.is_file() and not target.is_symlink()
+        and not target.stat().st_mode & stat.S_IWRITE
+    ):
+        target.chmod(target.stat().st_mode | stat.S_IWRITE)
+        remove(path)
+        return
+    raise error
+
+
 def _write_json(path: Path, value: dict[str, Any]) -> None:
     with path.open("x", encoding="utf-8") as stream:
         json.dump(value, stream, ensure_ascii=False, indent=2)
         stream.write("\n")
+
+
+def _same_output_stem(path: Path, target_stem: str) -> bool:
+    """Confirm aliases on the actual volume, including default macOS volumes."""
+    if path.stem == target_stem:
+        return True
+    if unicodedata.normalize("NFC", path.stem).casefold() != unicodedata.normalize(
+        "NFC", target_stem
+    ).casefold():
+        return False
+    try:
+        return path.samefile(path.with_name(target_stem + path.suffix))
+    except FileNotFoundError:
+        return False
 
 
 def commit_accepted_resume(
@@ -110,8 +153,8 @@ def commit_accepted_resume(
             archive_targets = [
                 path
                 for path in output.iterdir()
-                if path.stem == Path(output_name).stem
-                and path.suffix.casefold() in (".docx", ".pdf")
+                if path.suffix.casefold() in (".docx", ".pdf")
+                and _same_output_stem(path, Path(output_name).stem)
             ]
             if any(path.is_symlink() for path in archive_targets):
                 raise ValueError("Accepted outputs must not be symlinks.")
@@ -157,4 +200,4 @@ def commit_accepted_resume(
         }
     finally:
         if not retain_stage:
-            shutil.rmtree(stage, ignore_errors=True)
+            shutil.rmtree(stage, onerror=_retry_readonly_cleanup)

@@ -37,7 +37,7 @@ python scripts/preview_resume_styles.py --output-dir /absolute/external/new-dire
 ```
 
 The preview uses wholly fictional `examples/synthetic_resume.json`. Its DOCX,
-internal QA PDF, independent previews, page images and `preview.json` remain
+internal QA PDF, repeated PDF reference images and `preview.json` remain
 outside the Skill repository. It is not an Accepted Resume or an independent
 review of actual candidate claims.
 
@@ -46,7 +46,7 @@ review of actual candidate claims.
 | Actual rendered text fonts | ArialMT and Arial-BoldMT |
 | Pages | One A4 page |
 | Physical QA | PASS |
-| Independent DOCX preview versus same-source PDF | Pixel-identical |
+| Repeated DOCX-to-PDF render versus same-source PDF | Pixel-identical; not direct DOCX inspection |
 | Current page versus pre-cleanup `526c71b` professional-v3 | Pixel-identical at 144 DPI (1191 x 1684 pixels) |
 | Actual page visual inspection | Readable; no clipping, overlap or company/date misalignment |
 
@@ -54,6 +54,10 @@ Long heading/date handling, actual Arial faces, true overflow and the real
 cache-to-render-to-publication/history path are covered by passing integration
 tests. A passing layout is preserved; auto-fit changes formatting only and keeps
 the current readability floor and caller margins.
+
+The current workflow requires direct DOCX viewing in a named/versioned reader
+before acceptance. The synthetic preview script leaves this review pending;
+the historical PDF comparisons above do not establish a direct DOCX visual pass.
 
 ## Coverage boundaries
 

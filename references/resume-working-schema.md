@@ -56,6 +56,63 @@ Summary section.
 `candidate_id` must match the cache. Reload/rebind after facts, preferences or
 conflicts change; replacing a fingerprint without checking evidence is not review.
 
+## Required facts
+
+Check these fields before compilation and again against the visible candidate:
+
+| Selected content | Required non-empty facts |
+| --- | --- |
+| Header | `name`, `contact` with a supported usable contact channel |
+| Each employment | `company`, `title`, `dates`, `location` |
+| Each education | `school`, `degree`, `dates` |
+| Each optional project, certification or award | `name` |
+
+Employment `dates` must preserve the supported start/end period or current status.
+Use the location of that specific employment, not the candidate's current home,
+an employer headquarters or another job. `Remote` is valid only when supported
+for that employment. Education location and optional-module dates/issuer/tool
+details remain optional; the table does not require selecting optional modules.
+
+Missing, null, empty and whitespace-only required facts block compilation, audit
+and candidate preparation; publication recompiles the frozen draft with the same
+checks. Each supplied fact still needs its normal evidence binding. If a required
+fact is in the current evidence, restore it to the draft. If absent or disputed,
+ask for that fact and ingest the answer before continuing. Placeholder text,
+guesses, silent omission and omission reasons cannot satisfy a required fact.
+Incomplete evidence caches remain valid and unchanged by these display checks.
+
+Programs check field presence and bindings. Independent review verifies dates,
+contact usability, original meaning and actual visibility in the document; a
+non-empty field alone does not establish factual completeness.
+
+## Accuracy and completeness across sections
+
+Compare the complete current Ledger, original source excerpts, corrections and
+applicable user preferences with both the draft and actual document. Required
+facts above are a minimum; every displayed assertion needs an accuracy check,
+and every section needs a completeness check against the full evidence, including
+whole entries that were dropped. Use these section-specific criteria:
+
+| Review section | Accuracy | Completeness |
+| --- | --- | --- |
+| `personal` | Selected supported name; each email, telephone number/country code, current location and profile/portfolio URL actually shown; visible link label and hyperlink target agree. | Usable supported contact channel and all user-required header details. Account for omitted known contact details using current preferences; optional channels need not all appear. |
+| `education` | Correct school/campus, degree level and major in `degree`, attendance/graduation dates, earned versus expected status, and location when shown; no mixing facts between degrees. | Compare every current valid education entity, including multiple degrees; preserve known degree/major and date meaning. Explain any omitted education record or material qualification detail. |
+| `experience` | Correct employer, title, period and location for that employment; bullet ownership, technologies, metric objects and completion state. | Compare full employment history and important contributions; account for missing jobs, date gaps introduced by editing and mandatory facts. |
+| `skills` | Every term is supported at the claimed level; use does not imply administration, expertise or ownership. | Supported target-critical capabilities are visible or their omission is explained; no invented skill fills an evidence gap. |
+| `projects` | Correct project name, ownership, role, technologies, dates and results when shown. | Explain selected/omitted material contributions using the optional-module criteria when applicable. |
+| `certifications` | Correct credential name, issuer, dates and evidenced current/expired status when shown. | Explain target-relevant inclusion/omission; absence of this optional section is valid. |
+| `awards` | Correct title, granting organization, date and personal/team attribution when shown. | Explain target-relevant inclusion/omission; absence of this optional section is valid. |
+
+Personal completeness does not require a street address, birth date, photo or
+protected attributes. Optional facts may be left out for privacy, relevance or
+the user's preferences. Record that decision; do not manufacture a missing fact
+or silently drop required/user-requested information to fit one page. School
+location and secondary contact channels are not made universally mandatory.
+Conflicting, unsupported, incorrectly attributed or materially incomplete facts
+are blocking. Unknown facts remain unknown until sourced; a spelling/formatting
+change must preserve meaning. These are evidence checks, not external identity,
+credential, email-deliverability or URL-availability verification.
+
 ## Evidence links
 
 ```json

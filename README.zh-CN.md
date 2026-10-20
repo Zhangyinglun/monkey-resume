@@ -8,7 +8,8 @@ Skill。宿主模型阅读完整原文、理解事实并写作；本地脚本保
 内部仍保留同源 PDF，用于排版检查和历史记录。
 
 可追溯不等于事实正确。发布需要完整独立内容审查、真实视觉检查和单页 A4
-物理 QA。没有证据的岗位要求保留为缺口，不补成经历。岗位定位直接体现在
+物理 QA。视觉检查直接打开 DOCX，记录阅读器名称、版本和实际观察；PDF 图片不能
+替代此检查。没有证据的岗位要求保留为缺口，不补成经历。岗位定位直接体现在
 工作经历和技能栏中，生成简历不包含 Summary 栏。
 
 唯一支持的 `professional-v3` 样式采用 Arial、黑白、左对齐 11 pt 正文、简短章节标题、
@@ -20,6 +21,8 @@ Skill。宿主模型阅读完整原文、理解事实并写作；本地脚本保
 
 ## 安装
 
+Linux / macOS（Bash）：
+
 ```bash
 git clone https://github.com/Zhangyinglun/monkey-resume.git ~/Projects/monkey-resume
 cd ~/Projects/monkey-resume
@@ -30,11 +33,15 @@ mkdir -p ~/.agents/skills
 ln -s ~/Projects/monkey-resume ~/.agents/skills/monkey-resume
 ```
 
+Windows 原生安装与验证见 [PowerShell 指令](docs/guide/installation.md#windows-powershell-no-wsl-required)，
+无需 WSL。使用 `.venv\Scripts\python.exe`，不要使用 LibreOffice 自带的 Python。
+
 渲染还需 LibreOffice、Poppler 和 Arial。
 Arial 需按其许可证单独安装，本包不附带字体文件。缺少字体或实际渲染发生字体替换时，
 候选版本无法通过检查，即使替代字体外观相似。安装与环境限制见
-[输出与 QA](references/docx-output.md)。本机 LibreOffice 检查与用户执行的 Word、Google Docs
-等跨软件验证分别记录，不保证所有软件展示完全一致。安装或更新 Skill、agent 指令后，退出并重启 OpenCode。
+[输出与 QA](references/docx-output.md)。自动 PDF 测量与直接查看 DOCX 的阅读器结果分别记录，
+不保证所有软件展示完全一致。直接检查需要宿主能查看阅读器分页界面，或由独立人工完成。
+安装或更新 Skill、agent 指令后，退出并重启 OpenCode。
 
 ## 在 Agent 中使用
 
@@ -47,13 +54,13 @@ Arial 需按其许可证单独安装，本包不附带字体文件。缺少字�
 **定制并交付：**提供原始 JD 和候选人资料：
 
 ```text
-使用 $monkey-resume 根据这个岗位定制简历。独立审查内容并检查实际单页 DOCX/PDF 后再发布，默认只交付 DOCX，明确要求时才交付 PDF。
+使用 $monkey-resume 根据这个岗位定制简历。独立审查内容，并在文档阅读器中直接检查单页 DOCX 后再发布。默认只交付 DOCX，明确要求时再检查并交付 PDF。
 ```
 
 1. 保存原始字节和有序文本块；模型通读来源，用准确原文摘录提出事实，再提交经校验的导入。
 2. 分析原始 JD，匹配完整当前缓存，包括更正、项目归属及重要的较早经历。
 3. 只维护一份 draft：`target`、`resume`、`evidence_links`、`omissions`；程序计算 manifest 和指纹，无额外写作计划。
-4. `prepare` 冻结草稿、产物哈希、输出名及审查模板。审查者先盲读 JD 与可见简历，再核对完整证据和遗漏；逐页检查实际 DOCX 预览及同源 PDF。
+4. `prepare` 冻结草稿、产物哈希、输出名及审查模板。审查者先盲读 JD 与可见简历，再核对完整证据和遗漏；在阅读器中直接逐页检查 DOCX，记录软件名称、版本和观察。交付 PDF 时另行逐页检查 PDF。
 5. `publish` 仅接受当前版本的通过审查与物理 QA。审查或渲染不完整时仅保留候选版本；可处理失败保留既有接受产物及历史。不自动填写 PASS，不用自审批准。
 
 命令与契约见 [SKILL.md](SKILL.md)、[资料导入](references/source-ingestion.md)、

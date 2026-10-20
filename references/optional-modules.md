@@ -2,21 +2,34 @@
 
 ## Select by evidence value
 
-Keep professional experience dominant for an experienced engineer. Include an
-optional module when it adds evidence that the selected work history does not
-already communicate. Prioritize role relevance, personal ownership, technical
-depth, adoption or a verifiable result. Avoid duplicating the same achievement
-under both a job and a standalone module.
+Keep professional experience dominant for an experienced engineer. Omit open-source
+and patent content by default, whether in a standalone module or under an employer.
+Include a selected contribution only when all of these conditions hold:
 
-Use these as editable starting points, not industry standards or acceptance
-gates. Count rendered body lines separately from project names and headings:
+- It demonstrates a specific capability or responsibility important to the target
+  role, supported by the original JD. Without a JD, use the candidate's stated
+  outreach purpose rather than inventing job requirements.
+- It adds meaningful evidence beyond the selected work history, such as a
+  complementary capability, ownership, technical depth or a verifiable outcome.
+- Its value justifies the space it occupies; retain stronger relevant professional
+  evidence when the two compete for the one-page limit.
+
+The JD need not mention open source or patents: judge the actual contribution's
+relevance. Their presence in the cache or a previous resume, general technical
+interest, patent status alone, or spare page space does not establish supplementary
+value. When the value is unclear, omit the content. Apply the same evidence-value
+principle to other optional modules and avoid duplicating achievements.
+
+Decide inclusion before assigning space. For included contributions only, use
+these as editable starting points, not minimum allocations, industry standards
+or acceptance gates. Count rendered body lines separately from names and headings:
 
 | Evidence | Starting space | Placement |
 | --- | --- | --- |
-| Supplementary open source | 1–2 projects, roughly 2–4 body lines | After experience |
+| Open source filling a specific evidence gap | Start with one concise contribution; expand only for additional value | After experience |
 | Strongly relevant open source | Roughly 4–8 body lines | Increase only when it displaces weaker evidence |
 | Sustained maintainer or substantial project leadership | Treat as major experience when supported | Give space proportional to actual responsibility |
-| One related patent | Usually one bullet, roughly 1–2 lines | Under the employer where the invention was developed |
+| One patent meeting the inclusion criteria | Usually one bullet, roughly 1–2 lines | Under the employer where the invention was developed |
 | Several relevant patents or publications | Select a short list | Use a supported dedicated representation; avoid a full CV bibliography |
 | Awards or certifications | Usually one concise line each | Include only current or material differentiators |
 
@@ -55,9 +68,11 @@ the draft so fingerprints, review and render all describe the same artifact.
 
 ## Write patents and other distinctions
 
-Lead a patent bullet with the candidate's engineering contribution, application
-and supported benefit. Follow with the patent status/identifier and inventor role
-when those establish useful credibility. An opaque patent title or number alone
+Apply the inclusion criteria above before adding patent content, including a
+patent bullet under an employer. Lead an included patent bullet with the
+candidate's engineering contribution, application and supported benefit. Follow
+with the patent status/identifier and inventor role when those establish useful
+credibility. An opaque patent title or number alone
 does not communicate engineering ability. Distinguish pending from granted,
 inventor from assignee, and first-listed inventor from sole inventor.
 
@@ -79,7 +94,7 @@ renderer and review together before introducing a new standalone module type.
 | Layer | Save | Do not confuse it with |
 | --- | --- | --- |
 | Skill repository | General selection/writing rules, supported rendering options, fictional examples | Personal achievements or a single candidate's mandatory wording |
-| Candidate cache | Exact corrections with provenance; preferred name/contact; selected headings, detail level and approved phrasing as profile preferences | New evidence created merely by paraphrasing a draft |
+| Candidate cache | Exact corrections with provenance; preferred name/contact; user-requested wording, selection and layout changes as scoped profile preferences | New evidence created merely by paraphrasing a draft |
 | Master document | Complete source facts, technical mechanisms, dated statuses/links and optional concise resume formulations | A one-page resume that deletes less relevant history |
 | Target draft | Selected wording, evidence bindings, important omissions and known target context | Universal preferences or the complete evidence ledger |
 
@@ -89,3 +104,7 @@ of wording does not verify every underlying claim or satisfy visual QA. Preserve
 the existing file identity when updating a connected master document, read it
 first, add only missing material, and verify the completed write. Keep personal
 files outside the skill repository and preserve original detailed sources.
+
+For user-requested resume changes, follow `resume-revisions.md` and the
+`source-ingestion.md` resume-feedback convention. Persist each request, including
+target-only feedback, before regenerating; apply its recorded scope on reuse.

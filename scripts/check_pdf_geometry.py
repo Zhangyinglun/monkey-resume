@@ -116,6 +116,21 @@ def _starts_bullet(line: dict[str, Any]) -> bool:
     return first in _BULLET_MARKERS or first.startswith("•")
 
 
+def measure_contact_layout(page: Any) -> dict[str, Any]:
+    """Measure contact lines in the current name/contact/Experience header."""
+    header: list[dict[str, Any]] = []
+    for line in extract_page_lines(page):
+        section = _SECTION_HEADERS.get(str(line["text"]).strip().upper())
+        if section is not None:
+            if section == "experience" and header:
+                return {"measured": True, "line_count": len(header) - 1, "expected": 1}
+            break
+        header.append(line)
+    # Without the current template's boundary, guessing a line count could pass
+    # a missing or wrapped contact paragraph. Never include personal text in QA.
+    return {"measured": False, "line_count": None, "expected": 1}
+
+
 def _calc_geometry(sec_lines: list[dict[str, Any]]) -> dict[str, float | int]:
     if not sec_lines:
         return {"line_count": 0, "height_mm": 0.0}

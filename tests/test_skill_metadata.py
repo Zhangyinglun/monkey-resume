@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import re
 import unittest
 from pathlib import Path
@@ -56,17 +57,24 @@ class SkillMetadataTests(unittest.TestCase):
         }
         self.assertEqual(
             {
-                str(path.relative_to(vendor_root))
+                path.relative_to(vendor_root).as_posix()
                 for path in bundled_files
                 if "__pycache__" not in path.parts
             },
             allowed,
         )
-        import hashlib
-
+        provenance = (vendor_root / "openai_doc/PROVENANCE.md").read_text(encoding="utf-8")
+        local_hash = re.search(r"Local SHA-256 render_docx.py: ([a-f0-9]{64})", provenance)
+        self.assertIsNotNone(local_hash, "Local vendor changes must record their SHA-256.")
         self.assertEqual(
-            hashlib.sha256((vendor_root / "openai_doc/render_docx.py").read_bytes()).hexdigest(),
-            "52b3c3158913ebcad2ada7b8193970b70453239e255054aa2d60c1683af08751",
+            hashlib.sha256(
+                (vendor_root / "openai_doc/render_docx.py").read_text(encoding="utf-8").encode("utf-8")
+            ).hexdigest(),
+            local_hash.group(1),
+        )
+        self.assertIn(
+            "Upstream SHA-256 render_docx.py: 52b3c3158913ebcad2ada7b8193970b70453239e255054aa2d60c1683af08751",
+            provenance,
         )
 
     def test_skill_contains_single_draft_and_independent_import_workflows(self) -> None:

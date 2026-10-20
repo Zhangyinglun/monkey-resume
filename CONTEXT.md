@@ -66,7 +66,8 @@ entities and relationships, bound to the draft and evidence context. It is not a
 model-authored plan or proof that the selected prose is true or complete.
 
 **Traceability Audit**: deterministic reference, version, usability and structural
-ownership checks. PASS means traceability only, not semantic entailment.
+ownership checks, including presence of the display contract's required facts.
+PASS means traceability only, not semantic entailment or factual completeness.
 
 ## Review and delivery
 
@@ -81,12 +82,16 @@ probability, protected attributes or arbitrary style quotas.
 
 **Review Record**: actual review results bound to the current context, draft,
 display and DOCX/PDF bytes, including content findings and visual inspection.
+Its section fact reviews account for every displayed assertion and reconcile
+accuracy/completeness against full evidence, including omitted whole entries.
+Programs enforce review coverage and status, not the truth of its declarations.
 Reviewer identity and independence are host provenance declarations, not
 cryptographic proof or a substitute for real review.
 
 **Physical QA**: measurements of actual rendered one-page A4 output, text,
-bounds and readable fonts. Visual review additionally inspects wrapping,
-clipping, hierarchy and both artifact previews.
+bounds and readable fonts in the DOCX-derived PDF. Visual review directly opens
+the exact DOCX in a named/versioned document reader and inspects pagination,
+wrapping, clipping and hierarchy. PDF delivery also requires PDF inspection.
 
 **Accepted Resume**: requested DOCX/PDF deliverables published after complete
 current independent content review, actual visual inspection and physical QA.

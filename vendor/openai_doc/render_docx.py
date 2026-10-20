@@ -1,11 +1,13 @@
+# Modified by MonkeyResume for Windows execution and bounded process lifetimes.
+# See PROVENANCE.md for the pinned upstream source and local portability changes.
 import argparse
-import os
 import re
 import subprocess
 import tempfile
 import xml.etree.ElementTree as ET
 from os import makedirs, replace
 from os.path import abspath, basename, exists, expanduser, join, splitext
+from pathlib import Path
 from shutil import which
 import sys
 from typing import Sequence, cast
@@ -13,12 +15,20 @@ from zipfile import ZipFile
 
 from pdf2image import convert_from_path, pdfinfo_from_path
 
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+from templates.office_tools import find_soffice, run_office  # noqa: E402
+
 TWIPS_PER_INCH: int = 1440
 
 
 def ensure_system_tools() -> None:
     missing: list[str] = []
-    for tool in ("soffice", "pdftoppm"):
+    if find_soffice() is None:
+        missing.append("LibreOffice")
+    for tool in ("pdftoppm", "pdfinfo"):
         if which(tool) is None:
             missing.append(tool)
     if missing:
@@ -75,7 +85,7 @@ def calc_dpi_via_pdf(input_path: str, max_w_px: int, max_h_px: int) -> int:
             if not (pdf_path and exists(pdf_path)):
                 raise RuntimeError("Failed to convert input to PDF for DPI computation.")
 
-            info = pdfinfo_from_path(pdf_path)
+            info = pdfinfo_from_path(pdf_path, timeout=15)
             size_val = info.get("Page size")
             if not size_val:
                 for k, v in info.items():
@@ -97,14 +107,8 @@ def calc_dpi_via_pdf(input_path: str, max_w_px: int, max_h_px: int) -> int:
             return round(min(max_w_px / width_in, max_h_px / height_in))
 
 
-def run_cmd_no_check(cmd: list[str]) -> None:
-    subprocess.run(
-        cmd,
-        check=False,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-        env=os.environ.copy(),
-    )
+def run_cmd_no_check(cmd: list[str], *, env: dict[str, str] | None = None) -> None:
+    run_office(cmd, env=env, timeout=30)
 
 
 def convert_to_pdf(
@@ -112,11 +116,16 @@ def convert_to_pdf(
     user_profile: str,
     convert_tmp_dir: str,
     stem: str,
+    *,
+    env: dict[str, str] | None = None,
 ) -> str:
+    soffice = find_soffice()
+    if soffice is None:
+        raise RuntimeError("LibreOffice is required for DOCX PDF reference rendering.")
     # Try direct DOC(X) -> PDF
     cmd_pdf = [
-        "soffice",
-        "-env:UserInstallation=file://" + user_profile,
+        soffice,
+        "-env:UserInstallation=" + Path(user_profile).resolve().as_uri(),
         "--invisible",
         "--headless",
         "--norestore",
@@ -126,7 +135,7 @@ def convert_to_pdf(
         convert_tmp_dir,
         doc_path,
     ]
-    run_cmd_no_check(cmd_pdf)
+    run_cmd_no_check(cmd_pdf, env=env)
 
     pdf_path = join(convert_tmp_dir, f"{stem}.pdf")
     if exists(pdf_path):
@@ -134,8 +143,8 @@ def convert_to_pdf(
 
     # Fallback: DOCX -> ODT, then ODT -> PDF
     cmd_odt = [
-        "soffice",
-        "-env:UserInstallation=file://" + user_profile,
+        soffice,
+        "-env:UserInstallation=" + Path(user_profile).resolve().as_uri(),
         "--invisible",
         "--headless",
         "--norestore",
@@ -145,14 +154,14 @@ def convert_to_pdf(
         convert_tmp_dir,
         doc_path,
     ]
-    run_cmd_no_check(cmd_odt)
+    run_cmd_no_check(cmd_odt, env=env)
 
     odt_path = join(convert_tmp_dir, f"{stem}.odt")
 
     if exists(odt_path):
         cmd_odt_pdf = [
-            "soffice",
-            "-env:UserInstallation=file://" + user_profile,
+            soffice,
+            "-env:UserInstallation=" + Path(user_profile).resolve().as_uri(),
             "--invisible",
             "--headless",
             "--norestore",
@@ -162,7 +171,7 @@ def convert_to_pdf(
             convert_tmp_dir,
             odt_path,
         ]
-        run_cmd_no_check(cmd_odt_pdf)
+        run_cmd_no_check(cmd_odt_pdf, env=env)
         if exists(pdf_path):
             return pdf_path
 
@@ -173,6 +182,8 @@ def rasterize(
     doc_path: str,
     out_dir: str,
     dpi: int,
+    *,
+    env: dict[str, str] | None = None,
 ) -> Sequence[str]:
     """Rasterise DOCX (or similar) to images placed in out_dir and return their paths.
 
@@ -191,6 +202,7 @@ def rasterize(
                 user_profile,
                 convert_tmp_dir,
                 stem,
+                env=env,
             )
 
             if not pdf_path or not exists(pdf_path):
@@ -207,6 +219,7 @@ def rasterize(
                     output_folder=out_dir,
                     paths_only=True,
                     output_file="page",
+                    timeout=30,
                 ),
             )
 
@@ -224,7 +237,7 @@ def rasterize(
     return final_paths
 
 
-def main() -> None:
+def main() -> int:
     parser = argparse.ArgumentParser(description="Render DOCX-like file to PNG images.")
     parser.add_argument(
         "input_path",
@@ -287,10 +300,11 @@ def main() -> None:
 
         rasterize(input_path, out_dir, dpi)
         print("Pages rendered to " + out_dir)
-    except RuntimeError as exc:
+    except (RuntimeError, OSError, subprocess.SubprocessError) as exc:
         print(f"Error: {exc}", file=sys.stderr)
-        raise SystemExit(1)
+        return 1
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

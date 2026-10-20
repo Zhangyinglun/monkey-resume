@@ -13,6 +13,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from scripts import generate_final_resume as publication
+from tests.sample_data import sample_resume
 
 
 class PublicationTests(unittest.TestCase):
@@ -91,7 +92,7 @@ class PublicationTests(unittest.TestCase):
             **self.context,
             "draft_fingerprint": "draft-1",
             "resume_fingerprint": "resume-1",
-            "resume": {"experience": [{"bullets": ["model prose"]}]},
+            "resume": sample_resume(),
             "target": {
                 "original_jd": "JD",
                 "requirements": [],
@@ -108,7 +109,9 @@ class PublicationTests(unittest.TestCase):
                 {
                     "name": name,
                     "passed": True,
-                    "detail": {"count": 1}
+                    "detail": {"measured": True, "line_count": 1}
+                    if name == "contact_single_line"
+                    else {"count": 1}
                     if name == "page_count"
                     else ({"measured": True} if name == "font_readability" else {}),
                 }
@@ -118,6 +121,7 @@ class PublicationTests(unittest.TestCase):
                     "text_layer",
                     "page_bounds",
                     "font_readability",
+                    "contact_single_line",
                     "text_geometry",
                 )
             ],
@@ -189,6 +193,7 @@ class PublicationTests(unittest.TestCase):
                 "requirements": [{"original_quote": "JD"}],
             },
             evidence_review={
+                **review["evidence_review"],
                 "status": "complete",
                 "context_id": review["context_id"],
                 "assertion_review": "Synthetic review record for gate-mechanics test only.",
@@ -196,11 +201,21 @@ class PublicationTests(unittest.TestCase):
             },
             review_context={"mode": "independent_subagent", "identifier": "synthetic-review-test"},
         )
+        for result in review["evidence_review"]["fact_review"].values():
+            result.update(
+                status="pass",
+                checked_paths=list(result["expected_paths"]),
+                accuracy_review="Synthetic source comparison; gate-mechanics test only.",
+                completeness_review="Synthetic coverage comparison; not an actual fact review.",
+            )
         review["content"].update(
             status="complete", verdict="pass", reviewer_id="reviewer", independent=True
         )
         review["visual"].update(
-            status="pass", pages=[1], docx_preview_inspected=True, pdf_preview_inspected=True
+            status="pass", method="direct_docx", pages=[1],
+            reader={"name": "Synthetic reader", "version": "test-only"},
+            observations="Synthetic direct-DOCX observation; tests gate mechanics only.",
+            docx_preview_inspected=True, pdf_preview_inspected=True,
         )
         return review
 
@@ -210,6 +225,59 @@ class PublicationTests(unittest.TestCase):
         self.assertFalse((self.workspace / "resume_output").exists())
         self.assertFalse((self.workspace / "resume_history").exists())
         self.assertEqual(prepared["review_template"]["content"]["status"], "pending")
+
+    def test_fact_checklist_covers_personal_education_and_optional_sections(self) -> None:
+        self.compiled["resume"].update(
+            projects=[{"name": "Tool", "tech": "Python", "bullets": ["Built tooling."]}],
+            certifications=[{"name": "Certificate", "issuer": "Issuer", "dates": "2024"}],
+            awards=[{"name": "Award", "organization": "Organization", "dates": "2023"}],
+        )
+        prepared = self.prepare()
+        facts = prepared["review_template"]["evidence_review"]["fact_review"]
+        self.assertEqual(facts["personal"]["expected_paths"], ["name", "contact"])
+        self.assertEqual(facts["education"]["expected_paths"], [
+            "education[0].school", "education[0].degree", "education[0].dates",
+        ])
+        self.assertIn("skills[0].items[0]", facts["skills"]["expected_paths"])
+        self.assertNotIn("skills[0].category", facts["skills"]["expected_paths"])
+        self.assertIn("projects[0].bullets[0]", facts["projects"]["expected_paths"])
+        self.assertIn("certifications[0].issuer", facts["certifications"]["expected_paths"])
+        self.assertIn("awards[0].organization", facts["awards"]["expected_paths"])
+        self.assertTrue(all(f["status"] == "pending" for f in facts.values()))
+
+    def test_missing_or_incomplete_section_fact_reviews_block_publication(self) -> None:
+        prepared = self.prepare()
+        sections = prepared["review_template"]["evidence_review"]["fact_review"]
+        for section in sections:
+            mutations = (
+                lambda facts: facts.pop(section),
+                lambda facts: facts[section].update(status="pending"),
+                lambda facts: facts[section].update(status="blocked"),
+                lambda facts: facts[section].update(accuracy_review=" "),
+                lambda facts: facts[section].update(completeness_review=""),
+                lambda facts: facts[section]["checked_paths"].append("foreign.path"),
+            )
+            for mutation in mutations:
+                review = self.review(prepared)
+                mutation(review["evidence_review"]["fact_review"])
+                with self.subTest(section=section, mutation=mutation):
+                    with self.assertRaises(publication.ReviewNotReady):
+                        publication.publish_candidate(self.workspace, prepared["candidate_id"], review)
+                    self.assertFalse((self.workspace / "resume_history").exists())
+
+    def test_skipping_education_fact_or_editing_checklist_does_not_pass(self) -> None:
+        prepared = self.prepare()
+        for change in (
+            lambda result: result["checked_paths"].pop(),
+            lambda result: result.update(checked_paths=["education[0].school"] * 3),
+            lambda result: (result["checked_paths"].pop(), result["expected_paths"].pop()),
+        ):
+            review = self.review(prepared)
+            change(review["evidence_review"]["fact_review"]["education"])
+            with self.subTest(change=change), self.assertRaisesRegex(
+                publication.ReviewNotReady, "education"
+            ):
+                publication.publish_candidate(self.workspace, prepared["candidate_id"], review)
 
     def test_valid_publish_has_target_history_and_preserves_candidate(self) -> None:
         prepared = self.prepare()
@@ -232,7 +300,12 @@ class PublicationTests(unittest.TestCase):
             lambda r: r.update(candidate_id="foreign"),
             lambda r: r.update(context_id="old"),
             lambda r: r.update(pdf_sha256="forged"),
-            lambda r: r["visual"].update(pdf_preview_inspected=False),
+            lambda r: r["visual"].update(docx_preview_inspected=False),
+            lambda r: r["visual"].update(method="pdf_conversion"),
+            lambda r: r["visual"].pop("method"),
+            lambda r: r["visual"].update(reader={}),
+            lambda r: r["visual"].update(reader={"name": "Writer", "version": " "}),
+            lambda r: r["visual"].update(observations=" "),
             lambda r: r["visual"].update(pages=[]),
             lambda r: r["content"].update(findings=[{"severity": "blocking"}]),
         ):
@@ -242,6 +315,28 @@ class PublicationTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     publication.publish_candidate(self.workspace, prepared["candidate_id"], review)
                 self.assertFalse((self.workspace / "resume_history").exists())
+
+    def test_docx_delivery_uses_direct_review_without_pdf_visual_review(self) -> None:
+        prepared = self.prepare()
+        review = self.review(prepared)
+        review["visual"]["pdf_preview_inspected"] = False
+        result = publication.publish_candidate(self.workspace, prepared["candidate_id"], review)
+        self.assertEqual(result["status"], "published")
+        self.assertTrue(all(Path(path).suffix == ".docx" for path in result["outputs"]))
+        self.assertTrue(Path(result["historical_pdf"]).is_file())
+
+    def test_pdf_delivery_also_requires_pdf_visual_review(self) -> None:
+        prepared = self.prepare()
+        review = self.review(prepared)
+        review["visual"]["pdf_preview_inspected"] = False
+        for output_format in ("pdf", "both"):
+            with self.subTest(output_format=output_format), self.assertRaisesRegex(
+                publication.ReviewNotReady, "PDF delivery"
+            ):
+                publication.publish_candidate(
+                    self.workspace, prepared["candidate_id"], review, output_format=output_format
+                )
+            self.assertFalse((self.workspace / "resume_history").exists())
 
     def test_publish_rejects_retired_or_incomplete_style_records(self) -> None:
         for change in (
@@ -376,6 +471,29 @@ class PublicationTests(unittest.TestCase):
                 self.workspace, prepared["candidate_id"], self.review(prepared)
             )
         self.assertFalse((self.workspace / "resume_history").exists())
+
+    def test_wrapped_contact_blocks_prepare_and_publish_preserving_accepted(self) -> None:
+        prepared = self.prepare()
+        output = self.workspace / "resume_output"
+        output.mkdir()
+        accepted = output / "resume.docx"
+        accepted.write_bytes(b"previous accepted resume")
+        contact = next(c for c in self.qa["checks"] if c["name"] == "contact_single_line")
+        contact.update(passed=False, detail={"measured": True, "line_count": 2})
+        self.assertFalse(self.prepare()["qa_passed"])
+        with self.assertRaisesRegex(publication.ReviewNotReady, "single-line contact"):
+            publication.publish_candidate(
+                self.workspace, prepared["candidate_id"], self.review(prepared)
+            )
+        self.assertEqual(accepted.read_bytes(), b"previous accepted resume")
+        self.assertFalse((self.workspace / "resume_history").exists())
+
+    def test_missing_or_unmeasured_contact_layout_cannot_pass_qa(self) -> None:
+        report = copy.deepcopy(self.qa)
+        report["checks"] = [c for c in report["checks"] if c["name"] != "contact_single_line"]
+        self.assertFalse(publication._qa_passes(report))
+        report["checks"].append({"name": "contact_single_line", "passed": True, "detail": {}})
+        self.assertFalse(publication._qa_passes(report))
 
     def test_style_advisories_do_not_need_dispositions(self) -> None:
         self.qa["checks"].extend(

@@ -13,6 +13,16 @@ not implement pagination, a PDF writer, or a screenshot-based Word document.
 Every published PDF is exported from that exact DOCX by LibreOffice Writer.
 Even DOCX-only delivery requires LibreOffice: the exported QA PDF must
 pass measured one-page A4, text, bounds and readable-font QA before publishing.
+The name occupies its own line, followed by exactly one contact-information line
+before Experience. The `contact_single_line` physical check counts actual rendered
+lines in this header using PDF word coordinates; two or more contact lines, a
+missing contact line or an unidentifiable header block publication. Preparation
+reports this check and publication reruns it, including for DOCX-only delivery.
+Shorten redundant display labels or visible link text while preserving supported
+contact facts and link destinations, then reprepare and review. Keep readable
+fonts and permitted margins; unresolved wrapping leaves a candidate unpublished.
+Confirm the same single-line contact row by directly opening the exact DOCX;
+a passing PDF measurement alone does not establish another reader's layout.
 The compiler validates traceability, not semantic entailment. Complete independent
 content and actual visual review are required before acceptance. The required
 writing/wrapping rules in `resume-language-quality.md` also apply; other section,
@@ -28,6 +38,11 @@ same LibreOffice version and font files when comparing outputs. Font discovery
 and any converter Fontconfig settings are local to the conversion process; no
 global font configuration is required. No network service receives resume content;
 conversion is local to the executor.
+
+For native Windows setup, read `docs/guide/installation.md`. Standard LibreOffice
+installations are discovered without changing PATH; `soffice.com` keeps conversion
+waitable without launching the GUI bootstrapper. Poppler's `pdftoppm.exe` and
+`pdfinfo.exe` must be on PATH. Use the project virtual environment's Python.
 
 ## CLI
 
@@ -86,8 +101,10 @@ python3 "$MONKEY_RESUME_DIR/scripts/preview_resume_styles.py" \
 ```
 
 This development preview uses `examples/synthetic_resume.json`, renders the
-current Arial style, retains independent DOCX and PDF page images, and records
-physical QA and pixel comparison in `preview.json`. It bypasses
+current Arial style, retains PDF reference images, and records
+physical QA and repeated PDF-render pixel comparison in `preview.json`. Its
+direct DOCX visual status remains pending until the file is opened and inspected.
+It bypasses
 candidate evidence/publication deliberately and is never an Accepted Resume.
 Visually inspect the actual pages in addition to these mechanical checks.
 
@@ -108,30 +125,67 @@ accepted fixed reference. See `resume-generation-records.md` for storage/recover
 Handled history failures preserve accepted outputs, and handled publication
 failures roll back both the requested output pair and the new history record.
 
-## OpenAI public skill reuse
+## Direct DOCX visual inspection
 
-The Apache-2.0 public OpenAI doc visual QA script is vendored unchanged at
+Open the frozen candidate `.docx` itself in an available document reader, such as
+Microsoft Word, LibreOffice Writer or Pages. Use its paginated/print-layout view
+at a readable zoom. Inspect the actual view or screenshots captured from it,
+including page boundaries and every page; text extraction, a thumbnail of only
+the first page, HTML reconstruction and DOCX-to-PDF images are insufficient.
+
+For example, on macOS use `open -a "LibreOffice" /absolute/path/target.docx`, or
+choose Microsoft Word/Pages if that is the intended reader. On Linux use
+`libreoffice --view /absolute/path/target.docx`. Opening the file alone is not
+inspection. Use available host document/UI tools to view and capture the pages;
+otherwise an independent human can perform the same review. Do not save changes
+to the frozen candidate. If the reader changes the DOCX, reprepare and review the
+new bytes. Never treat launching a reader as visual PASS.
+
+Record `visual.method: direct_docx`, the reader's actual name/version, observed
+page numbers and concrete `visual.observations` in the bound review. Check
+pagination, wrapping, contact lines, bullet endings, fonts, borders, margins,
+date alignment and clipping. Keep screenshots outside the Skill repository and
+include their paths in observations when captures are available. If direct
+viewing, page coverage or reader metadata is unavailable, keep visual review
+pending and report the missing check. A local PDF measurement cannot replace it.
+
+The tested reader defines the scope of the result: a LibreOffice or Pages
+inspection does not certify Word. Prefer the intended recipient's reader when
+available; report the actual reader and limitations at handoff.
+
+DOCX-only delivery requires this direct DOCX inspection; internal QA PDF visual
+inspection is optional. For `--format pdf` or `both`, also inspect every delivered
+PDF page and set `visual.pdf_preview_inspected: true` only after doing so.
+
+## PDF reference rendering
+
+The Apache-2.0 public OpenAI doc visual QA script is vendored with local
+Windows/process-lifetime fixes at
 `vendor/openai_doc/render_docx.py`; provenance, source links, fixed commit and
 hashes are in `vendor/openai_doc/PROVENANCE.md`. No current private host skill is copied into this repository. The public skill recommends python-docx authoring and the
-DOCX → LibreOffice PDF → PNG inspection loop used here.
+DOCX → LibreOffice PDF → PNG loop retained for internal PDF reference checks.
+This loop does not inspect a DOCX reader's live view.
 
-Independent visual verification:
+Optional repeated PDF rendering and PDF page images:
 
 ```
-python3 "$MONKEY_RESUME_DIR/scripts/render_docx_preview.py" /absolute/path/target.docx --output_dir /absolute/path/docx-preview --style professional-v3 --dpi 144
+python3 "$MONKEY_RESUME_DIR/scripts/render_pdf_reference.py" /absolute/path/target.docx --output_dir /absolute/path/pdf-repeat-preview --style professional-v3 --dpi 144
 pdftoppm -r 144 -png /absolute/path/target.pdf /absolute/path/pdf-preview
 ```
 
-Inspect every page in both sets. Compare page count, paragraph wrapping, borders,
-fonts, hyperlinks, margins, page breaks, and extracted text. The independent
-OpenAI preview may attempt an ODT fallback on failure; a fallback is not valid
-proof of strict equivalence. Publication intentionally uses bounded direct
-LibreOffice conversion with errors instead.
+These images can check the fixed PDF reference and repeatability in the same
+engine. They cannot set `docx_preview_inspected` to true. The vendored OpenAI
+renderer may attempt an ODT fallback on failure; that fallback is not strict
+DOCX/PDF equivalence evidence. Publication uses bounded direct LibreOffice
+conversion with errors instead. Both paths encode profile paths as absolute file
+URIs and stop the converter process tree on timeout; previews also bound Poppler
+calls. A conversion timeout leaves review pending, not accepted.
 
 Check every bullet ending using the actual rendered text width defined in
 `resume-language-quality.md`. Existing physical QA's sparse-ending diagnostic is
 not a complete check of that rule: a programmatic PASS still requires the host
-and independent reviewer to verify every bullet in both previews. Revise prose
+and independent reviewer to verify every bullet in the direct DOCX view (and
+the PDF when delivering it). Revise prose
 and reprepare when an ending fails; preserve the accepted files until the new
 candidate's complete content and visual review passes.
 
@@ -150,14 +204,17 @@ typography engine is not a pixel-identical reference.
 
 ## Supported validation environment
 
-Local rendering checks use LibreOffice Writer, actual Arial and Poppler.
+Local automated PDF measurements use LibreOffice Writer, actual Arial and Poppler.
+Direct visual inspection additionally requires an available document reader and
+access to its paginated view, through host tools or an independent human.
 See `docs/validation/professional-v3.md` for recorded local Arial evidence.
 A rendering test skipped because Arial is absent
 is recorded as unavailable coverage, not an Arial pass.
 
-The user owns cross-software checks. Record their software name, version and
-observed page count, alignment, wrapping and clipping separately from automated
-local checks. A local LibreOffice pass does not certify Microsoft Word, Google
+Record direct-view software name, version and observed page count, alignment,
+wrapping and clipping separately from automated PDF measurements. Additional
+reader results supplied by the user stay attributed to that reader.
+A local LibreOffice pass does not certify Microsoft Word, Google
 Docs or other readers. Font embedding and pixel equality across readers are not
 part of this contract. English resume typography and Chinese filenames are the
 scope; Chinese resume typography is not certified.
